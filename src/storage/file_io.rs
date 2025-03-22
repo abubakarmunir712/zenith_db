@@ -8,3 +8,60 @@
 // File I/O is a critical component of the storage layer, interacting 
 // closely with the buffer pool and WAL (Write-Ahead Logging) system.
 //
+use std::fs::{self, OpenOptions,File};
+use std::io::{Result, Error, ErrorKind,Write,Seek,SeekFrom,Read};
+pub struct IOEngine;
+
+impl IOEngine{
+
+
+    pub fn file_exists(filename: &str) -> bool {
+        fs::metadata(filename).is_ok()
+    }
+    
+
+    pub fn create_file(filename: &str) -> Result<bool> {
+        if Self::file_exists(filename) {
+            return Ok(false); // File already exists
+        }
+    
+        OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(filename)
+            .map(|_| true) // If successful, return true
+            .map_err(|e| Error::new(ErrorKind::Other, format!("Failed to create file: {}", e))) // it propagate errors
+    }
+
+      /// this function appends a page of 4kb (4096 bytes) in our file.
+      pub fn write_page(filename: &str, data: &[u8]) -> Result<()> {
+        if data.len() != 4096 {
+            return Err(Error::new(ErrorKind::InvalidInput, "Data must be exactly be equal to a page i.e 4096 bytes"));
+        }
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .append(true)
+            .open(filename)?;
+
+        file.write_all(data)?;
+        file.flush()?; // Ensure data is written to disk
+        Ok(())
+    }
+
+    //This function reads a specific page from a given file and the page number.
+    pub fn read_page(filename: &str, page_number: u64) -> Result<[u8; 4096]> {
+        let mut file = File::open(filename)?;
+    
+        let offset = page_number * 4096;//it calculates the offset considering it 0 index
+        file.seek(SeekFrom::Start(offset))?; // moves to the correct page
+    
+        //making a fixed size array of 4kb and reading exact a page into it.
+        let mut buffer = [0; 4096]; 
+        file.read_exact(&mut buffer)?; 
+    
+        Ok(buffer)
+    }
+    
+}
