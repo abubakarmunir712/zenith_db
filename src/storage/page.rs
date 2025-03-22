@@ -9,77 +9,161 @@
 // the buffer pool and file I/O system.
 //
 
-/// Metadata for a database page, stored at the beginning of each page.
-/// Helps manage free space, track records, and assist in recovery.
-struct PageHeader {
-    /// Unique identifier for this page within a file.
-    page_id: u32,
-
-    /// Log Sequence Number (LSN) used for Write-Ahead Logging (WAL) and crash recovery.
-    lsn: u64,
-
-    /// Offset (in bytes) indicating where the free space starts in the page.
-    /// This helps in efficiently finding space for new records.
-    free_space_offset: u16,
-
-    /// The total number of records (tuples) currently stored in this page.
-    num_of_tuples: u16,
-
-    /// Offset (in bytes) where the slot table begins.
-    /// The slot table keeps track of record locations inside the page.
-    slot_table_offset: u16,
-}
-
-/// A slot entry inside the slot table.
-/// Each slot keeps track of a record's position within the page.
-struct Slot {
-    /// Byte offset within the page where the record starts.
-    record_offset: u16,
-
-    /// The size of the record in bytes.
-    record_size: u16,
-
-    /// Whether the record is deleted (1) or valid (0).
-    is_deleted: u8,
-}
+use super::page_header::PageHeader;
+use super::slot::Slot;
 
 /// Represents a database page, containing metadata, data, and a slot table.
 /// Pages store records and are managed within the buffer pool.
 pub struct Page {
     /// Tracks whether the page has been modified but not written to disk.
-    is_dirty: bool,
+    pub is_dirty: bool,
 
     /// The actual raw data of the page.
-    data: Vec<u8>,
+    pub data: Vec<u8>,
 
     /// Metadata about the page, such as free space and tuple count.
-    page_header: PageHeader,
+    pub page_header: PageHeader,
 
     /// A table containing offsets to records stored in the data section.
-    slot_table: Vec<Slot>,
+    pub slot_table: Vec<Slot>,
 }
 
 impl Page {
+
+    /// Creates a new `Page` with the given `page_id` and `lsn`.
+    ///
+    /// # Parameters
+    /// - `page_id`: The unique identifier for the page.
+    /// - `lsn`: The Log Sequence Number used for Write-Ahead Logging (WAL).
+    ///
+    /// # Behavior
+    /// - The page starts as **not dirty** (`is_dirty = false`).
+    /// - Initializes an **empty data buffer** (`Vec::new()`).
+    /// - Creates a **`PageHeader`** with:
+    ///   - `free_space_offset = 20` (free space starts from the 20th byte).
+    ///   - `num_of_tuples = 0` (no records initially).
+    ///   - `slot_table_offset = 4096` (no slot table yet).
+    /// - Initializes an **empty slot table** (`Vec::new()`).
+    ///
+    /// # Returns
+    /// A new `Page` instance with default settings.
+
+    pub fn new(page_id: u32, lsn: u64) -> Self {
+        Page {
+            is_dirty: false,
+            data: Vec::new(),
+            page_header: PageHeader::new(page_id, lsn, 20, 0, 4096),
+            slot_table: Vec::new(),
+        }
+    }
+
     /// Serializes the Page into a 4KB byte array for storage on disk.
     /// This includes packing the page header, slot table, and data into a single buffer.
     pub fn serialize(&self) -> [u8; 4096] {
-        [0; 4096] // Placeholder implementation
+        let mut buffer: [u8; 4096] = [0; 4096];
+        self._serialize_page_header(&mut buffer);
+        self._serialize_data(&mut buffer);
+        self._serialize_slot_table(&mut buffer);
+
+        buffer
     }
 
     /// Deserializes a 4KB buffer into a Page instance.
     /// Extracts the page header, slot table, and data from raw bytes.
-    fn deserialize(buffer: &[u8; 4096]) -> Self {
+    pub fn deserialize(buffer: &[u8; 4096]) -> Self {
         Page {
             is_dirty: false,
-            data: Vec::new(),
-            page_header: PageHeader {
-                page_id: 0,
-                lsn: 0,
-                free_space_offset: 0,
-                num_of_tuples: 0,
-                slot_table_offset: 0,
-            },
-            slot_table: Vec::new(),
+            data: Self::_deserialize_data(buffer),
+            page_header: Self::_deserialize_page_header(buffer),
+            slot_table: Self::_deserialize_slot_table(buffer),
         }
+    }
+
+    #[rustfmt::skip]
+    fn _serialize_page_header(&self, buffer: &mut [u8; 4096]) {
+        buffer[0..4].copy_from_slice(&self.page_header.page_id.to_le_bytes());
+
+        buffer[4..12].copy_from_slice(&self.page_header.lsn.to_le_bytes());
+
+        buffer[12..14].copy_from_slice(&self.page_header.free_space_offset.to_le_bytes());
+
+        buffer[14..16].copy_from_slice(&self.page_header.num_of_tuples.to_le_bytes());
+
+        buffer[16..18].copy_from_slice(&self.page_header.slot_table_offset.to_le_bytes());
+
+    }
+
+    fn _serialize_data(&self, buffer: &mut [u8; 4096]) {
+        if self.page_header.num_of_tuples == 0 || self.data.len() == 0 {
+            return;
+        }
+        let data_start: usize = 20; // Data segment starts from 20th byte
+        let data_end: usize = self.page_header.free_space_offset as usize;
+        buffer[data_start..data_end].copy_from_slice(&self.data);
+    }
+
+    fn _serialize_slot_table(&self, buffer: &mut [u8; 4096]) {
+        let mut offset: usize = self.page_header.slot_table_offset as usize;
+        for slot in &self.slot_table {
+            buffer[offset..offset + 2].copy_from_slice(&slot.record_offset.to_le_bytes());
+            offset += 2;
+
+            buffer[offset..offset + 2].copy_from_slice(&slot.record_size.to_le_bytes());
+            offset += 2;
+
+            buffer[offset..offset + 1].copy_from_slice(&slot.is_deleted.to_le_bytes());
+            offset += 4; // Add extra 3 bytes for padding
+        }
+    }
+
+    fn _deserialize_page_header(buffer: &[u8; 4096]) -> PageHeader {
+        let page_id = u32::from_le_bytes(buffer[0..4].try_into().unwrap());
+        let lsn = u64::from_le_bytes(buffer[4..12].try_into().unwrap());
+        let free_space_offset = u16::from_le_bytes(buffer[12..14].try_into().unwrap());
+        let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
+        let slot_table_offset = u16::from_le_bytes(buffer[16..18].try_into().unwrap());
+
+        PageHeader {
+            page_id,
+            lsn,
+            free_space_offset,
+            num_of_tuples,
+            slot_table_offset,
+        }
+    }
+
+    fn _deserialize_data(buffer: &[u8; 4096]) -> Vec<u8> {
+        let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
+        if num_of_tuples == 0 {
+            return Vec::new();
+        }
+        let data_start: usize = 20;
+        // Reading free_space_start
+        let data_end: usize = u16::from_le_bytes(buffer[12..14].try_into().unwrap()) as usize;
+        let data: Vec<u8> = buffer[data_start..data_end].to_vec();
+        data
+    }
+
+    fn _deserialize_slot_table(buffer: &[u8; 4096]) -> Vec<Slot> {
+        let mut slot_table: Vec<Slot> = Vec::new();
+        let mut offset: usize = u16::from_le_bytes(buffer[16..18].try_into().unwrap()) as usize;
+        let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
+
+        for _ in 0..num_of_tuples {
+            let record_offset = u16::from_le_bytes(buffer[offset..offset + 2].try_into().unwrap());
+            offset += 2;
+            let record_size = u16::from_le_bytes(buffer[offset..offset + 2].try_into().unwrap());
+            offset += 2;
+            let is_deleted = u8::from_le_bytes(buffer[offset..offset + 1].try_into().unwrap());
+            offset += 4;
+
+            slot_table.push(Slot {
+                record_offset,
+                record_size,
+                is_deleted,
+            });
+        }
+
+        slot_table
     }
 }
