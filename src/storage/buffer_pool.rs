@@ -8,3 +8,7 @@
 // The Buffer Pool acts as an intermediary between the storage engine 
 // and the file system, ensuring efficient data access.
 //
+pub struct BufferPool{
+
+    pages:Vec<Page>
+}

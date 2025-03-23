@@ -31,14 +31,7 @@ impl IOEngine {
     }
 
     /// this function appends a page of 4kb (4096 bytes) in our file.
-    pub fn write_page(filename: &str, data: &[u8]) -> Result<()> {
-        if data.len() != 4096 {
-            return Err(Error::new(
-                ErrorKind::InvalidInput,
-                "Data must be exactly be equal to a page i.e 4096 bytes",
-            ));
-        }
-
+    pub fn add_page(filename: &str, data: &[u8;4096]) -> Result<()> {
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -62,5 +55,19 @@ impl IOEngine {
         file.read_exact(&mut buffer)?;
 
         Ok(buffer)
+    }
+
+    pub fn update_page(filename: &str, page_number: u64, data: &[u8; 4096]) -> Result<()> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open(filename)?;
+    
+        let offset = page_number * 4096; //calculate offset 
+        file.seek(SeekFrom::Start(offset))?; // move to the correct page
+    
+        file.write_all(data)?; // overwrite the page (only 4kbs not ahead part)
+        file.flush()?; 
+    
+        Ok(())
     }
 }
