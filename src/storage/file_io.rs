@@ -70,4 +70,9 @@ impl IOEngine {
     
         Ok(())
     }
+    pub fn delete_file(filename: &str) -> Result<()> {
+        std::fs::remove_file(filename)?;
+        Ok(())
+    }
+    
 }
