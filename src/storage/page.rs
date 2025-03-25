@@ -24,6 +24,7 @@ pub struct Page {
     /// Metadata about the page, such as free space and tuple count.
     pub page_header: PageHeader,
 
+    pin_count: u32,  // Initialize to 0
     /// A table containing offsets to records stored in the data section.
     pub slot_table: Vec<Slot>,
 }
@@ -54,6 +55,7 @@ impl Page {
             data: Vec::new(),
             page_header: PageHeader::new(page_id, lsn, 20, 0, 4096),
             slot_table: Vec::new(),
+            pin_count:0,
         }
     }
 
@@ -64,7 +66,7 @@ impl Page {
         self._serialize_page_header(&mut buffer);
         self._serialize_data(&mut buffer);
         self._serialize_slot_table(&mut buffer);
-
+        //Need to serialize pin_count probably
         buffer
     }
 
@@ -76,6 +78,7 @@ impl Page {
             data: Self::_deserialize_data(buffer),
             page_header: Self::_deserialize_page_header(buffer),
             slot_table: Self::_deserialize_slot_table(buffer),
+            pin_count:0,//Need to make a deserialize function probably
         }
     }
 
@@ -165,5 +168,23 @@ impl Page {
         }
 
         slot_table
+    }
+
+
+     /// It increments the pin count when a page is accessed.
+     pub fn pin(&mut self) {
+        self.pin_count += 1;
+    }
+
+    /// It decrements the pin count when the page is no longer in use.
+    pub fn unpin(&mut self) {
+        if self.pin_count > 0 {
+            self.pin_count -= 1;
+        }
+    }
+
+    /// It checks if the page is pinned.
+    pub fn is_pinned(&self) -> bool {
+        self.pin_count > 0
     }
 }
