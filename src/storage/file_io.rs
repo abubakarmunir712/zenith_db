@@ -51,7 +51,7 @@ impl IOEngine {
         file.seek(SeekFrom::Start(offset))?; // moves to the correct page
 
         //making a fixed size array of 4kb and reading exact a page into it.
-        let mut buffer = [0; 4096];
+        let mut buffer: [u8; 4096] = [0; 4096];
         file.read_exact(&mut buffer)?;
 
         Ok(buffer)
