@@ -8,46 +8,73 @@
 // File I/O is a critical component of the storage layer, interacting
 // closely with the buffer pool and WAL (Write-Ahead Logging) system.
 //
+
+use crate::enums::db_error_status::DatabaseStatus;
+use crate::utils::fs_utils::{db_exists, db_file_status, ensure_file_exists, get_file_size};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Error, ErrorKind, Read, Result, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
+
 pub struct IOEngine;
 
 impl IOEngine {
-    pub fn file_exists(filename: &str) -> bool {
-        fs::metadata(filename).is_ok()
-    }
-
-    pub fn create_file(filename: &str) -> Result<bool> {
-        if Self::file_exists(filename) {
-            return Ok(false); // File already exists
+    /// Creates a new database by creating a directory with the given name.1
+    pub fn create_database(database_name: &str) -> Result<()> {
+        if db_exists(database_name) {
+            return Err(Error::new(
+                ErrorKind::AlreadyExists,
+                DatabaseStatus::DatabaseAlreadyExists.message(),
+            ));
         }
-
-        OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(filename)
-            .map(|_| true) // If successful, return true
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Failed to create file: {}", e))) // it propagate errors
-    }
-
-    /// this function appends a page of 4kb (4096 bytes) in our file.
-    pub fn add_page(filename: &str, data: &[u8;4096]) -> Result<()> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .append(true)
-            .open(filename)?;
-
-        file.write_all(data)?;
-        file.flush()?; // Ensure data is written to disk
+        fs::create_dir(database_name)?;
         Ok(())
     }
 
-    //This function reads a specific page from a given file and the page number.
-    pub fn read_page(filename: &str, page_number: u64) -> Result<[u8; 4096]> {
-        let mut file = File::open(filename)?;
+    /// Creates a new file inside the specified database.
+    pub fn create_file(database_name: &str, file_name: &str) -> Result<()> {
+        let file_exists: DatabaseStatus = db_file_status(database_name, file_name);
+        if let DatabaseStatus::FileNotFound = file_exists {
+            let path: PathBuf = Path::new(database_name).join(file_name);
+            File::create(path)?;
+            return Ok(());
+        } else {
+            return Err(Error::new(ErrorKind::AlreadyExists, file_exists.message()));
+        }
+    }
 
-        let offset = page_number * 4096; //it calculates the offset considering it 0 index
+    /// This function appends a page of 4kb (4096 bytes) in our file.
+    pub fn add_page(database_name: &str, file_name: &str, data: &[u8; 4096]) -> Result<()> {
+        let path: PathBuf = ensure_file_exists(database_name, file_name)?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(false)
+            .append(true)
+            .open(path)?;
+
+        file.write_all(data)?;
+        file.flush()?; // Ensure data is written to disk
+        return Ok(());
+    }
+
+    /// Validates if the given page number is within the file's bounds.
+    fn validate_page_bounds(path: &Path, page_number: u64) -> Result<(u64)> {
+        let file_size = get_file_size(path)?;
+        let offset = page_number * 4096;
+        if file_size < offset + 4096 {
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                DatabaseStatus::PageNotFoundInFile.message(),
+            ));
+        }
+        Ok(offset)
+    }
+
+    //This function reads a specific page from a given file and the page number.
+    pub fn read_page(database_name: &str, file_name: &str, page_number: u64) -> Result<[u8; 4096]> {
+        let path: PathBuf = ensure_file_exists(database_name, file_name)?;
+        let offset: u64 = Self::validate_page_bounds(&path, page_number)?;
+        let mut file: File = File::open(path)?;
+
         file.seek(SeekFrom::Start(offset))?; // moves to the correct page
 
         //making a fixed size array of 4kb and reading exact a page into it.
@@ -57,22 +84,40 @@ impl IOEngine {
         Ok(buffer)
     }
 
-    pub fn update_page(filename: &str, page_number: u64, data: &[u8; 4096]) -> Result<()> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .open(filename)?;
-    
-        let offset = page_number * 4096; //calculate offset 
-        file.seek(SeekFrom::Start(offset))?; // move to the correct page
-    
-        file.write_all(data)?; // overwrite the page (only 4kbs not ahead part)
-        file.flush()?; 
-    
+    /// Updates a specific 4KB page in the file by overwriting it.
+    pub fn update_page(
+        database_name: &str,
+        file_name: &str,
+        page_number: u64,
+        data: &[u8; 4096],
+    ) -> Result<()> {
+        let path = ensure_file_exists(database_name, file_name)?;
+        let offset: u64 = Self::validate_page_bounds(&path, page_number)?;
+
+        let mut file: File = OpenOptions::new().write(true).open(path)?;
+        file.seek(SeekFrom::Start(offset))?; // Move to the correct page
+        file.write_all(data)?; // Overwrite exactly 4KB
+        file.flush()?;
+
         Ok(())
     }
-    pub fn delete_file(filename: &str) -> Result<()> {
-        std::fs::remove_file(filename)?;
+
+    /// Deletes the specified file from the database.
+    pub fn delete_file(database_name: &str, file_name: &str) -> Result<()> {
+        let path = ensure_file_exists(database_name, file_name)?;
+        std::fs::remove_file(path)?;
         Ok(())
     }
-    
+
+    /// Deletes the entire database directory and all its contents.
+    pub fn delete_database(database_name: &str) -> Result<()> {
+        if !db_exists(database_name) {
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                DatabaseStatus::DatabaseNotFound.message(),
+            ));
+        }
+        fs::remove_dir_all(database_name)?; // Removes the directory and all its contents
+        Ok(())
+    }
 }
