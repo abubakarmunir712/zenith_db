@@ -4,13 +4,36 @@
 pub struct Slot {
     /// Byte offset within the page where the record starts.
     /// This helps locate the actual data inside the page.
-    pub record_offset: u16,
+    record_offset: u16,
 
     /// The size of the record in bytes.
     /// Used to determine how much space the record occupies.
-    pub record_size: u16,
+    record_size: u16,
 
     /// Whether the record is deleted (1) or valid (0).
     /// A deleted record's space may be reclaimed for future inserts.
-    pub is_deleted: u8,
+    is_deleted: u8,
+}
+
+impl Slot {
+    pub fn new(record_offset: u16, record_size: u16, is_deleted: u8) -> Self {
+        Slot {
+            record_offset,
+            record_size,
+            is_deleted,
+        }
+    }
+
+    /// Getter functions
+    pub fn record_offset(&self) -> u16 {
+        self.record_offset
+    }
+
+    pub fn record_size(&self) -> u16 {
+        self.record_size
+    }
+
+    pub fn is_deleted(&self) -> u8 {
+        self.is_deleted
+    }
 }

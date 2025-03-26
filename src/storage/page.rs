@@ -16,21 +16,22 @@ use super::slot::Slot;
 /// Pages store records and are managed within the buffer pool.
 pub struct Page {
     /// Tracks whether the page has been modified but not written to disk.
-    pub is_dirty: bool,
+    is_dirty: bool,
 
     /// The actual raw data of the page.
-    pub data: Vec<u8>,
+    data: Vec<u8>,
 
     /// Metadata about the page, such as free space and tuple count.
-    pub page_header: PageHeader,
+    page_header: PageHeader,
 
-    pin_count: u32,  // Initialize to 0
     /// A table containing offsets to records stored in the data section.
-    pub slot_table: Vec<Slot>,
+    slot_table: Vec<Slot>,
+
+    /// The number of active references to this page in memory.
+    pin_count: u32,
 }
 
 impl Page {
-
     /// Creates a new `Page` with the given `page_id` and `lsn`.
     ///
     /// # Parameters
@@ -38,7 +39,7 @@ impl Page {
     /// - `lsn`: The Log Sequence Number used for Write-Ahead Logging (WAL).
     ///
     /// # Behavior
-    /// - The page starts as **not dirty** (`is_dirty = false`).
+    /// - The page starts as **dirty** (`is_dirty = true`).
     /// - Initializes an **empty data buffer** (`Vec::new()`).
     /// - Creates a **`PageHeader`** with:
     ///   - `free_space_offset = 20` (free space starts from the 20th byte).
@@ -51,11 +52,11 @@ impl Page {
 
     pub fn new(page_id: u32, lsn: u64) -> Self {
         Page {
-            is_dirty: false,
+            is_dirty: true,
             data: Vec::new(),
             page_header: PageHeader::new(page_id, lsn, 20, 0, 4096),
             slot_table: Vec::new(),
-            pin_count:0,
+            pin_count: 0,
         }
     }
 
@@ -66,7 +67,6 @@ impl Page {
         self._serialize_page_header(&mut buffer);
         self._serialize_data(&mut buffer);
         self._serialize_slot_table(&mut buffer);
-        //Need to serialize pin_count probably
         buffer
     }
 
@@ -78,43 +78,43 @@ impl Page {
             data: Self::_deserialize_data(buffer),
             page_header: Self::_deserialize_page_header(buffer),
             slot_table: Self::_deserialize_slot_table(buffer),
-            pin_count:0,//Need to make a deserialize function probably
+            pin_count: 0,
         }
     }
 
     #[rustfmt::skip]
     fn _serialize_page_header(&self, buffer: &mut [u8; 4096]) {
-        buffer[0..4].copy_from_slice(&self.page_header.page_id.to_le_bytes());
+        buffer[0..4].copy_from_slice(&self.page_header.page_id().to_le_bytes());
 
-        buffer[4..12].copy_from_slice(&self.page_header.lsn.to_le_bytes());
+        buffer[4..12].copy_from_slice(&self.page_header.lsn().to_le_bytes());
 
-        buffer[12..14].copy_from_slice(&self.page_header.free_space_offset.to_le_bytes());
+        buffer[12..14].copy_from_slice(&self.page_header.free_space_offset().to_le_bytes());
 
-        buffer[14..16].copy_from_slice(&self.page_header.num_of_tuples.to_le_bytes());
+        buffer[14..16].copy_from_slice(&self.page_header.num_of_tuples().to_le_bytes());
 
-        buffer[16..18].copy_from_slice(&self.page_header.slot_table_offset.to_le_bytes());
+        buffer[16..18].copy_from_slice(&self.page_header.slot_table_offset().to_le_bytes());
 
     }
 
     fn _serialize_data(&self, buffer: &mut [u8; 4096]) {
-        if self.page_header.num_of_tuples == 0 || self.data.len() == 0 {
+        if self.page_header.num_of_tuples() == 0 || self.data.len() == 0 {
             return;
         }
         let data_start: usize = 20; // Data segment starts from 20th byte
-        let data_end: usize = self.page_header.free_space_offset as usize;
+        let data_end: usize = self.page_header.free_space_offset() as usize;
         buffer[data_start..data_end].copy_from_slice(&self.data);
     }
 
     fn _serialize_slot_table(&self, buffer: &mut [u8; 4096]) {
-        let mut offset: usize = self.page_header.slot_table_offset as usize;
+        let mut offset: usize = self.page_header.slot_table_offset() as usize;
         for slot in &self.slot_table {
-            buffer[offset..offset + 2].copy_from_slice(&slot.record_offset.to_le_bytes());
+            buffer[offset..offset + 2].copy_from_slice(&slot.record_offset().to_le_bytes());
             offset += 2;
 
-            buffer[offset..offset + 2].copy_from_slice(&slot.record_size.to_le_bytes());
+            buffer[offset..offset + 2].copy_from_slice(&slot.record_size().to_le_bytes());
             offset += 2;
 
-            buffer[offset..offset + 1].copy_from_slice(&slot.is_deleted.to_le_bytes());
+            buffer[offset..offset + 1].copy_from_slice(&slot.is_deleted().to_le_bytes());
             offset += 4; // Add extra 3 bytes for padding
         }
     }
@@ -126,13 +126,13 @@ impl Page {
         let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
         let slot_table_offset = u16::from_le_bytes(buffer[16..18].try_into().unwrap());
 
-        PageHeader {
+        PageHeader::new(
             page_id,
             lsn,
             free_space_offset,
             num_of_tuples,
             slot_table_offset,
-        }
+        )
     }
 
     fn _deserialize_data(buffer: &[u8; 4096]) -> Vec<u8> {
@@ -160,19 +160,16 @@ impl Page {
             let is_deleted = u8::from_le_bytes(buffer[offset..offset + 1].try_into().unwrap());
             offset += 4;
 
-            slot_table.push(Slot {
-                record_offset,
-                record_size,
-                is_deleted,
-            });
+            slot_table.push(Slot::new(record_offset, record_size, is_deleted));
         }
 
         slot_table
     }
 
-
-     /// It increments the pin count when a page is accessed.
-     pub fn pin(&mut self) {
+    /// Getter & Setter methods
+    ///
+    /// It increments the pin count when a page is accessed.
+    pub fn pin(&mut self) {
         self.pin_count += 1;
     }
 
@@ -186,5 +183,25 @@ impl Page {
     /// It checks if the page is pinned.
     pub fn is_pinned(&self) -> bool {
         self.pin_count > 0
+    }
+
+    pub fn data(&self) -> &Vec<u8> {
+        &self.data
+    }
+
+    pub fn page_header(&self) -> &PageHeader {
+        &self.page_header
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        self.is_dirty
+    }
+
+    pub fn set_is_dirty(&mut self, is_dirty: bool) {
+        self.is_dirty = is_dirty
+    }
+
+    pub fn slot_table(&self) -> &Vec<Slot> {
+        &self.slot_table
     }
 }

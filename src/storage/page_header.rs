@@ -2,21 +2,21 @@
 /// Helps manage free space, track records, and assist in recovery.
 pub struct PageHeader {
     /// Unique identifier for this page within a file.
-    pub page_id: u32,
+    page_id: u32,
 
     /// Log Sequence Number (LSN) used for Write-Ahead Logging (WAL) and crash recovery.
-    pub lsn: u64,
+    lsn: u64,
 
     /// Offset (in bytes) indicating where the free space starts in the page.
     /// This helps in efficiently finding space for new records.
-    pub free_space_offset: u16,
+    free_space_offset: u16,
 
     /// The total number of records (tuples) currently stored in this page.
-    pub num_of_tuples: u16,
+    num_of_tuples: u16,
 
     /// Offset (in bytes) where the slot table begins.
     /// The slot table keeps track of record locations inside the page.
-    pub slot_table_offset: u16,
+    slot_table_offset: u16,
 }
 
 impl PageHeader {
@@ -45,5 +45,28 @@ impl PageHeader {
             num_of_tuples,
             slot_table_offset,
         }
+    }
+
+    /// Getter & setter methods
+    /// 
+
+    pub fn page_id(&self) -> u32 {
+        self.page_id
+    }
+
+    pub fn lsn(&self) -> u64 {
+        self.lsn
+    }
+
+    pub fn free_space_offset(&self) -> u16 {
+        self.free_space_offset
+    }
+
+    pub fn num_of_tuples(&self) -> u16 {
+        self.num_of_tuples
+    }
+
+    pub fn slot_table_offset(&self) -> u16 {
+        self.slot_table_offset
     }
 }
