@@ -57,8 +57,8 @@ impl IOEngine {
     }
 
     /// Validates if the given page number is within the file's bounds.
-    fn validate_page_bounds(path: &Path, page_number: u64) -> Result<(u64)> {
-        let file_size = get_file_size(path)?;
+    fn validate_page_bounds(path: &Path, page_number: u32) -> Result<u32> {
+        let file_size = get_file_size(path)? as u32;
         let offset = page_number * 4096;
         if file_size < offset + 4096 {
             return Err(Error::new(
@@ -70,12 +70,12 @@ impl IOEngine {
     }
 
     //This function reads a specific page from a given file and the page number.
-    pub fn read_page(database_name: &str, file_name: &str, page_number: u64) -> Result<[u8; 4096]> {
+    pub fn read_page(database_name: &str, file_name: &str, page_number: u32) -> Result<[u8; 4096]> {
         let path: PathBuf = ensure_file_exists(database_name, file_name)?;
-        let offset: u64 = Self::validate_page_bounds(&path, page_number)?;
+        let offset: u32 = Self::validate_page_bounds(&path, page_number)?;
         let mut file: File = File::open(path)?;
 
-        file.seek(SeekFrom::Start(offset))?; // moves to the correct page
+        file.seek(SeekFrom::Start(offset.into()))?; // moves to the correct page
 
         //making a fixed size array of 4kb and reading exact a page into it.
         let mut buffer: [u8; 4096] = [0; 4096];
@@ -88,14 +88,14 @@ impl IOEngine {
     pub fn update_page(
         database_name: &str,
         file_name: &str,
-        page_number: u64,
+        page_number: u32,
         data: &[u8; 4096],
     ) -> Result<()> {
         let path = ensure_file_exists(database_name, file_name)?;
-        let offset: u64 = Self::validate_page_bounds(&path, page_number)?;
+        let offset: u32 = Self::validate_page_bounds(&path, page_number)?;
 
         let mut file: File = OpenOptions::new().write(true).open(path)?;
-        file.seek(SeekFrom::Start(offset))?; // Move to the correct page
+        file.seek(SeekFrom::Start(offset.into()))?; // Move to the correct page
         file.write_all(data)?; // Overwrite exactly 4KB
         file.flush()?;
 

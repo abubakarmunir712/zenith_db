@@ -18,12 +18,6 @@ pub struct Page {
     /// Tracks whether the page has been modified but not written to disk.
     is_dirty: bool,
 
-    /// Name of the database this page belongs to.
-    database_name: String,
-
-    /// Identifies the file this page belongs to within the database storage.
-    file_name: String,
-
     /// The actual raw data of the page.
     data: Vec<u8>,
 
@@ -43,8 +37,6 @@ impl Page {
     /// # Parameters
     /// - `page_id`: The unique identifier for the page.
     /// - `lsn`: The Log Sequence Number used for Write-Ahead Logging (WAL).
-    /// - `database_name`: The name of the database this page belongs to.
-    /// - `file_name`: The name of the file where this page is stored.
     ///
     /// # Behavior
     /// - The page starts as **dirty** (`is_dirty = true`).
@@ -54,21 +46,17 @@ impl Page {
     ///   - `num_of_tuples = 0` (no records initially).
     ///   - `slot_table_offset = 4096` (no slot table yet).
     /// - Initializes an **empty slot table** (`Vec::new()`).
-    /// - Stores the **database name** for tracking which database this page belongs to.
-    /// - Stores the **file name** to associate the page with its physical storage location.
     ///
     /// # Returns
     /// A new `Page` instance with default settings.
 
-    pub fn new(page_id: u32, lsn: u64, database_name: String, file_name: String) -> Self {
+    pub fn new(page_id: u32, lsn: u64) -> Self {
         Page {
             is_dirty: true,
             data: Vec::new(),
             page_header: PageHeader::new(page_id, lsn, 20, 0, 4096),
             slot_table: Vec::new(),
             pin_count: 0,
-            file_name,
-            database_name,
         }
     }
 
@@ -84,15 +72,13 @@ impl Page {
 
     /// Deserializes a 4KB buffer into a Page instance.
     /// Extracts the page header, slot table, and data from raw bytes.
-    pub fn deserialize(buffer: &[u8; 4096], file_name: String, database_name: String) -> Self {
+    pub fn deserialize(buffer: &[u8; 4096]) -> Self {
         Page {
             is_dirty: false,
             data: Self::_deserialize_data(buffer),
             page_header: Self::_deserialize_page_header(buffer),
             slot_table: Self::_deserialize_slot_table(buffer),
             pin_count: 0,
-            database_name,
-            file_name,
         }
     }
 
@@ -217,12 +203,5 @@ impl Page {
 
     pub fn slot_table(&self) -> &Vec<Slot> {
         &self.slot_table
-    }
-
-    pub fn file_name(&self) -> &String {
-        &self.file_name
-    }
-    pub fn database_name(&self) -> &String {
-        &self.database_name
     }
 }

@@ -36,7 +36,7 @@ pub fn file_exists(file_name: &str) -> bool {
 /// # Returns
 /// * `DatabaseFileStatus::DatabaseNotFound` if the database does not exist.
 /// * `DatabaseFileStatus::FileNotFound` if the file does not exist but the database does.
-/// * `DatabaseFileStatus::Exists` if both the database and file exist.
+/// * `DatabaseFileStatus::FileExistsInDatabase` if both the database and file exist.
 ///
 pub fn db_file_status(database_name: &str, file_name: &str) -> DatabaseStatus {
     let db_path: &Path = Path::new(database_name);
