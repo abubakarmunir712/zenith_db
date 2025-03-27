@@ -56,7 +56,7 @@ impl BufferManager {
 
         // Remove a page from the buffer pool if it has reached its capacity
         if self.pool.len() >= self.capacity {
-            self.evict_page();
+            self.evict_page()?;
         }
 
         let page_data = IOEngine::read_page(database_name, file_name, page_id)?;
@@ -91,7 +91,7 @@ impl BufferManager {
     }
 
     /// Evicts the least recently used (LRU) page from the buffer pool.
-    fn evict_page(&mut self) {
+    fn evict_page(&mut self)->Result<(),Error> {
         if let Some(oldest_page_id) = self.lru_list.pop_front() {
             if let Some(page) = self.pool.remove(&oldest_page_id) {
                 if page.is_dirty() {
@@ -101,20 +101,22 @@ impl BufferManager {
                         &oldest_page_id.1,
                         oldest_page_id.2,
                         &serialized_data,
-                    );
+                    )?;
                 }
             }
         }
+        Ok(())
     }
 
     /// Flushes all dirty pages to disk.
-    pub fn flush_all(&mut self) {
+    pub fn flush_all(&mut self)->Result<(),Error> {
         for ((database_name,file_name, page_id), page) in &mut self.pool {
             if page.is_dirty() {
                 let serialized_data = page.serialize();
-                IOEngine::update_page(database_name, file_name, *page_id, &serialized_data);
+                IOEngine::update_page(database_name, file_name, *page_id, &serialized_data)?;
             }
         }
+        Ok(())
 
     }
 }
