@@ -92,7 +92,7 @@ impl IOEngine {
         data: &[u8; 4096],
     ) -> Result<()> {
         let path = ensure_file_exists(database_name, file_name)?;
-        let offset: u32 = Self::validate_page_bounds(&path, page_number)?;
+        let offset= Self::validate_page_bounds(&path, page_number)?;
 
         let mut file: File = OpenOptions::new().write(true).open(path)?;
         file.seek(SeekFrom::Start(offset.into()))?; // Move to the correct page
