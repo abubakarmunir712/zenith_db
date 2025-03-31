@@ -14,6 +14,7 @@ use crate::utils::fs_utils::{db_exists, db_file_status, ensure_file_exists, get_
 use std::fs::{self, File, OpenOptions};
 use std::io::{Error, ErrorKind, Read, Result, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use crate::configs::config::Config::PAGE_SIZE;
 
 pub struct IOEngine;
 
@@ -43,7 +44,7 @@ impl IOEngine {
     }
 
     /// This function appends a page of 4kb (4096 bytes) in our file.
-    pub fn add_page(database_name: &str, file_name: &str, data: &[u8; 4096]) -> Result<()> {
+    pub fn add_page(database_name: &str, file_name: &str, data: &[u8; PAGE_SIZE as usize]) -> Result<()> {
         let path: PathBuf = ensure_file_exists(database_name, file_name)?;
         let mut file = OpenOptions::new()
             .write(true)
@@ -59,8 +60,8 @@ impl IOEngine {
     /// Validates if the given page number is within the file's bounds.
     fn validate_page_bounds(path: &Path, page_number: u32) -> Result<u32> {
         let file_size = get_file_size(path)? as u32;
-        let offset = page_number * 4096;
-        if file_size < offset + 4096 {
+        let offset = page_number * PAGE_SIZE;
+        if file_size < offset + PAGE_SIZE {
             return Err(Error::new(
                 ErrorKind::NotFound,
                 DatabaseStatus::PageNotFoundInFile.message(),
@@ -70,7 +71,7 @@ impl IOEngine {
     }
 
     //This function reads a specific page from a given file and the page number.
-    pub fn read_page(database_name: &str, file_name: &str, page_number: u32) -> Result<[u8; 4096]> {
+    pub fn read_page(database_name: &str, file_name: &str, page_number: u32) -> Result<[u8; PAGE_SIZE as usize]> {
         let path: PathBuf = ensure_file_exists(database_name, file_name)?;
         let offset: u32 = Self::validate_page_bounds(&path, page_number)?;
         let mut file: File = File::open(path)?;
@@ -78,7 +79,7 @@ impl IOEngine {
         file.seek(SeekFrom::Start(offset.into()))?; // moves to the correct page
 
         //making a fixed size array of 4kb and reading exact a page into it.
-        let mut buffer: [u8; 4096] = [0; 4096];
+        let mut buffer: [u8; PAGE_SIZE as usize] = [0; PAGE_SIZE as usize];
         file.read_exact(&mut buffer)?;
 
         Ok(buffer)
@@ -89,7 +90,7 @@ impl IOEngine {
         database_name: &str,
         file_name: &str,
         page_number: u32,
-        data: &[u8; 4096],
+        data: &[u8; PAGE_SIZE as usize],
     ) -> Result<()> {
         let path = ensure_file_exists(database_name, file_name)?;
         let offset= Self::validate_page_bounds(&path, page_number)?;

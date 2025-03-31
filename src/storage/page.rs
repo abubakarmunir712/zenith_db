@@ -11,6 +11,7 @@
 
 use super::page_header::PageHeader;
 use super::slot::Slot;
+use crate::configs::config::Config::PAGE_SIZE;
 
 /// Represents a database page, containing metadata, data, and a slot table.
 /// Pages store records and are managed within the buffer pool.
@@ -54,7 +55,7 @@ impl Page {
         Page {
             is_dirty: true,
             data: Vec::new(),
-            page_header: PageHeader::new(page_id, lsn, 20, 0, 4096),
+            page_header: PageHeader::new(page_id, lsn, 20, 0, PAGE_SIZE as u16),
             slot_table: Vec::new(),
             pin_count: 0,
         }
@@ -62,8 +63,8 @@ impl Page {
 
     /// Serializes the Page into a 4KB byte array for storage on disk.
     /// This includes packing the page header, slot table, and data into a single buffer.
-    pub fn serialize(&self) -> [u8; 4096] {
-        let mut buffer: [u8; 4096] = [0; 4096];
+    pub fn serialize(&self) -> [u8; PAGE_SIZE as usize] {
+        let mut buffer: [u8; PAGE_SIZE as usize] = [0; PAGE_SIZE as usize];
         self._serialize_page_header(&mut buffer);
         self._serialize_data(&mut buffer);
         self._serialize_slot_table(&mut buffer);
@@ -72,7 +73,7 @@ impl Page {
 
     /// Deserializes a 4KB buffer into a Page instance.
     /// Extracts the page header, slot table, and data from raw bytes.
-    pub fn deserialize(buffer: &[u8; 4096]) -> Self {
+    pub fn deserialize(buffer: &[u8; PAGE_SIZE as usize]) -> Self {
         Page {
             is_dirty: false,
             data: Self::_deserialize_data(buffer),
@@ -83,7 +84,7 @@ impl Page {
     }
 
     #[rustfmt::skip]
-    fn _serialize_page_header(&self, buffer: &mut [u8; 4096]) {
+    fn _serialize_page_header(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
         buffer[0..4].copy_from_slice(&self.page_header.page_id().to_le_bytes());
 
         buffer[4..12].copy_from_slice(&self.page_header.lsn().to_le_bytes());
@@ -96,7 +97,7 @@ impl Page {
 
     }
 
-    fn _serialize_data(&self, buffer: &mut [u8; 4096]) {
+    fn _serialize_data(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
         if self.page_header.num_of_tuples() == 0 || self.data.len() == 0 {
             return;
         }
@@ -105,7 +106,7 @@ impl Page {
         buffer[data_start..data_end].copy_from_slice(&self.data);
     }
 
-    fn _serialize_slot_table(&self, buffer: &mut [u8; 4096]) {
+    fn _serialize_slot_table(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
         let mut offset: usize = self.page_header.slot_table_offset() as usize;
         for slot in &self.slot_table {
             buffer[offset..offset + 2].copy_from_slice(&slot.record_offset().to_le_bytes());
@@ -119,7 +120,7 @@ impl Page {
         }
     }
 
-    fn _deserialize_page_header(buffer: &[u8; 4096]) -> PageHeader {
+    fn _deserialize_page_header(buffer: &[u8; PAGE_SIZE as usize]) -> PageHeader {
         let page_id = u32::from_le_bytes(buffer[0..4].try_into().unwrap());
         let lsn = u64::from_le_bytes(buffer[4..12].try_into().unwrap());
         let free_space_offset = u16::from_le_bytes(buffer[12..14].try_into().unwrap());
@@ -135,7 +136,7 @@ impl Page {
         )
     }
 
-    fn _deserialize_data(buffer: &[u8; 4096]) -> Vec<u8> {
+    fn _deserialize_data(buffer: &[u8; PAGE_SIZE as usize]) -> Vec<u8> {
         let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
         if num_of_tuples == 0 {
             return Vec::new();
@@ -147,7 +148,7 @@ impl Page {
         data
     }
 
-    fn _deserialize_slot_table(buffer: &[u8; 4096]) -> Vec<Slot> {
+    fn _deserialize_slot_table(buffer: &[u8; PAGE_SIZE as usize]) -> Vec<Slot> {
         let mut slot_table: Vec<Slot> = Vec::new();
         let mut offset: usize = u16::from_le_bytes(buffer[16..18].try_into().unwrap()) as usize;
         let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
