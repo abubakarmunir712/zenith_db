@@ -1,3 +1,4 @@
+use crate::configs::types_config::TypesConfig::{MAX_DECIMAL_PRECISION, MIN_DECIMAL_PRECISION};
 use crate::enums::type_errors::DecimalError;
 pub struct DECIMAL {
     value: i128,
@@ -17,7 +18,7 @@ impl DECIMAL {
             return Err(DecimalError::InvalidScale);
         }
         // Max allowed precision is 38, because i128 can only hold upto 38 digits!
-        if precision < 1 || precision > 38 {
+        if precision < MIN_DECIMAL_PRECISION || precision > MAX_DECIMAL_PRECISION {
             return Err(DecimalError::PrecisionOverflow);
         }
 
@@ -37,7 +38,7 @@ impl DECIMAL {
             0
         };
 
-        if parts[0].len() as u32 + dec_part_len - is_signed > 38 {
+        if parts[0].len() as u32 + dec_part_len - is_signed > MAX_DECIMAL_PRECISION {
             return Err(DecimalError::PrecisionOverflow);
         }
 
@@ -74,11 +75,11 @@ impl DECIMAL {
     }
 
     /// Converts an 8-byte little-endian representation back to a DOUBLE value.
-    pub fn from_bytes(bytes: &[u8; 16],precision: u32,scale: u32) -> Self {
+    pub fn from_bytes(bytes: &[u8; 16], precision: u32, scale: u32) -> Self {
         DECIMAL {
             value: i128::from_le_bytes(*bytes),
             precision,
-            scale
+            scale,
         }
     }
 

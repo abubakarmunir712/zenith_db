@@ -5,3 +5,4 @@ pub mod big_int;
 pub mod float;
 pub mod double;
 pub mod decimal;
+pub mod char;

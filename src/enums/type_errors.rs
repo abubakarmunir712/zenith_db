@@ -21,3 +21,12 @@ pub enum DecimalError {
     /// Occurs when trying to perform operations on decimals with mismatched scales.
     MismatchedScale,
 }
+
+#[derive(Debug)]
+pub enum CharError {
+    /// Occurs when attempting to store a string exceeding the allowed length.
+    LengthOverflow,
+
+    /// Occurs when a string contains invalid UTF-8 sequences.
+    InvalidUtf8,
+}
