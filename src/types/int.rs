@@ -15,7 +15,9 @@ impl INT {
     }
 
     /// Converts a 4-byte little-endian representation back to an i32 value.
-    pub fn from_bytes(bytes: &[u8; 4]) -> i32 {
-        i32::from_le_bytes(*bytes)
+    pub fn from_bytes(bytes: &[u8; 4]) -> Self {
+        INT {
+            value: i32::from_le_bytes(*bytes),
+        }
     }
 }

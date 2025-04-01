@@ -9,7 +9,7 @@
 // closely with the buffer pool and WAL (Write-Ahead Logging) system.
 //
 
-use crate::enums::db_error_status::DatabaseStatus;
+use crate::enums::db_status::DatabaseStatus;
 use crate::utils::fs_utils::{db_exists, db_file_status, ensure_file_exists, get_file_size};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Error, ErrorKind, Read, Result, Seek, SeekFrom, Write};

@@ -1,4 +1,4 @@
-use crate::enums::db_error_status::DatabaseStatus;
+use crate::enums::db_status::DatabaseStatus;
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::{fs, io};

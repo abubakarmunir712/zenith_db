@@ -15,7 +15,9 @@ impl TINYINT {
     }
 
     /// Converts a 1-byte little-endian representation back to an i8 value.
-    pub fn from_bytes(bytes: &[u8; 1]) -> i8 {
-        i8::from_le_bytes(*bytes)
+    pub fn from_bytes(bytes: &[u8; 1]) -> Self {
+        TINYINT {
+            value: i8::from_le_bytes(*bytes),
+        }
     }
 }

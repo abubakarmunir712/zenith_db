@@ -15,8 +15,10 @@ impl BIGINT {
     }
 
     /// Converts an 8-byte little-endian representation back to an i64 value.
-    pub fn from_bytes(bytes: &[u8; 8]) -> i64 {
-        i64::from_le_bytes(*bytes)
+    pub fn from_bytes(bytes: &[u8; 8]) -> Self {
+        BIGINT {
+            value: i64::from_le_bytes(*bytes),
+        }
     }
 
     pub fn value(&self) -> i64 {

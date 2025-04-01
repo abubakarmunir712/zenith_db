@@ -15,7 +15,9 @@ impl SMALLINT {
     }
 
     /// Converts a 2-byte little-endian representation back to an i16 value.
-    pub fn from_bytes(bytes: &[u8; 2]) -> i16 {
-        i16::from_le_bytes(*bytes)
+    pub fn from_bytes(bytes: &[u8; 2]) -> Self {
+        SMALLINT {
+            value: i16::from_le_bytes(*bytes),
+        }
     }
 }
