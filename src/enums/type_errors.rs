@@ -39,3 +39,12 @@ pub enum CharError {
     /// Occurs when the binary array or vector is below or above bounds during deserialization.
     InvalidBinary,
 }
+
+#[derive(Debug)]
+pub enum DateTimeError {
+    /// Occurs when the date/time format is incorrect.
+    InvalidFormat,
+
+    /// Triggered when the date/time value is invalid.
+    InvalidValue,
+}

@@ -7,3 +7,5 @@ pub mod double;
 pub mod decimal;
 pub mod char;
 pub mod text;
+pub mod bool;
+pub mod date;
