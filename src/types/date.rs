@@ -72,14 +72,19 @@ impl DATE {
 
     pub fn to_bytes(&self) -> [u8; 4] {
         let mut result: [u8; 4] = [0; 4];
-
+    
         // Store the year (first 2 bytes)
-        result.copy_from_slice(&self.year.to_le_bytes());
-        result.copy_from_slice(&self.month.to_le_bytes());
-        result.copy_from_slice(&self.day.to_le_bytes());
-
+        result[0..2].copy_from_slice(&self.year.to_le_bytes());
+    
+        // Store the month (3rd byte)
+        result[2] = self.month;
+    
+        // Store the day (4th byte)
+        result[3] = self.day;
+    
         result
     }
+    
 
     pub fn from_bytes(bytes: &[u8; 4]) -> Self {
         let year = u16::from_le_bytes([bytes[0], bytes[1]]);
