@@ -6,3 +6,4 @@ pub mod float;
 pub mod double;
 pub mod decimal;
 pub mod char;
+pub mod text;

@@ -19,7 +19,7 @@ impl DECIMAL {
         }
         // Max allowed precision is 38, because i128 can only hold upto 38 digits!
         if precision < MIN_DECIMAL_PRECISION || precision > MAX_DECIMAL_PRECISION {
-            return Err(DecimalError::PrecisionOverflow);
+            return Err(DecimalError::SysPrecisionLimitExceeded);
         }
 
         let parts: Vec<&str> = value.split(".").collect();

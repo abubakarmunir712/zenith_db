@@ -9,12 +9,16 @@
 /// - `MIN_DECIMAL_PRECISION`: The minimum precision allowed for DECIMAL types (default: 1).
 /// - `MAX_CHAR_SIZE`: The maximum allowed size for a CHAR field (default: 65536).
 /// - `MIN_CHAR_SIZE`: The minimum allowed size for a CHAR field (default: 1).
-///
+/// - `MAX_TEXT_SIZE`: The maximum allowed size for a TEXT field (default: 16_777_216).
+/// - `MIN_TEXT_SIZE`: The minimum allowed size for a TEXT field (default: 1).
+
 /// These constraints help enforce storage limitations and maintain database integrity.
 
 pub mod TypesConfig {
     pub const MAX_DECIMAL_PRECISION: u32 = 38;
     pub const MIN_DECIMAL_PRECISION: u32 = 1;
-    pub const MAX_CHAR_SIZE: u32 = 65536;
+    pub const MAX_CHAR_SIZE: u32 = 65_536;
     pub const MIN_CHAR_SIZE: u32 = 1;
+    pub const MAX_TEXT_SIZE: u32 = 16_777_216;
+    pub const MIN_TEXT_SIZE: u32 = 1;
 }

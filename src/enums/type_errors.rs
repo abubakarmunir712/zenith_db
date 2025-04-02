@@ -3,6 +3,9 @@ pub enum DecimalError {
     /// Occurs when the input exceeds the allowed precision..
     PrecisionOverflow,
 
+    /// Occurs when the input exceeds the system-defined precision limit.
+    SysPrecisionLimitExceeded,
+
     /// Occurs when scale (decimal places) is invalid or out of bounds.
     InvalidScale,
 
@@ -29,4 +32,10 @@ pub enum CharError {
 
     /// Occurs when a string contains invalid UTF-8 sequences.
     InvalidUtf8,
+
+    /// Occurs when attempting to store a string exceeding the **system-defined** maximum length.
+    SysLengthLimitExceeded,
+
+    /// Occurs when the binary array or vector is below or above bounds during deserialization.
+    InvalidBinary,
 }

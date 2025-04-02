@@ -15,7 +15,7 @@ impl CHAR {
     pub fn new(size: u32, value: &str) -> Result<Self, CharError> {
         let length: u32 = value.len() as u32;
         if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE || length > size {
-            return Err(CharError::LengthOverflow);
+            return Err(CharError::SysLengthLimitExceeded);
         }
         Ok(CHAR {
             size,
@@ -55,16 +55,21 @@ impl CHAR {
     /// For `CHAR`, it assumes the length is exactly `size` bytes, while for `VARCHAR`, it
     /// will expect a variable length string without padding.
     pub fn from_bytes(bytes: Vec<u8>, size: u32) -> Result<Self, CharError> {
+        let bytes_length: usize = bytes.len();
         // There must be at least 3 bytes (2 for size and 1 for value)
-        if bytes.len() < 3 {
-            return Err(CharError::LengthOverflow);
+        if bytes_length < 3 || bytes_length > MAX_CHAR_SIZE as usize + 2 {
+            return Err(CharError::InvalidBinary);
         }
 
         // Extract the length (first 2 bytes)
         let length = u16::from_le_bytes([bytes[0], bytes[1]]) as usize;
 
+        if length > size as usize {
+            return Err(CharError::LengthOverflow);
+        }
+
         // Ensure the length matches the rest of the bytes in the Vec
-        if bytes.len() - 2 < length {
+        if bytes.len() - 2 > length {
             return Err(CharError::LengthOverflow);
         }
 
