@@ -1,6 +1,6 @@
 // Define a struct `BOOL` to represent a boolean value.
 pub struct BOOL {
-    value: bool, // Holds the actual boolean value.
+    pub value: bool, // Holds the actual boolean value.
 }
 
 impl BOOL {

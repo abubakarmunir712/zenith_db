@@ -79,6 +79,7 @@ impl BufferManager {
 
     /// Marks a page as recently used, moving it to the back of the LRU list.
     fn touch(&mut self, database_name: &str, file_name: &str, page_id: u32) {
+    
         if let Some(pos) = self
             .lru_list
             .iter()

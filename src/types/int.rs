@@ -1,6 +1,6 @@
 /// Represents an INT (32-bit signed integer) data type.
 pub struct INT {
-    value: i32,
+    pub value: i32,
 }
 
 impl INT {

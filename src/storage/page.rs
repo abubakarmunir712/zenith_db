@@ -20,7 +20,7 @@ pub struct Page {
     is_dirty: bool,
 
     /// The actual raw data of the page.
-    data: Vec<u8>,
+    pub data: Vec<u8>,
 
     /// Metadata about the page, such as free space and tuple count.
     page_header: PageHeader,
@@ -76,8 +76,8 @@ impl Page {
     pub fn deserialize(buffer: &[u8; PAGE_SIZE as usize]) -> Self {
         Page {
             is_dirty: false,
-            data: Self::_deserialize_data(buffer),
             page_header: Self::_deserialize_page_header(buffer),
+            data: Self::_deserialize_data(buffer),
             slot_table: Self::_deserialize_slot_table(buffer),
             pin_count: 0,
         }
