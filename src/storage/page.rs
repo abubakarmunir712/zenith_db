@@ -152,7 +152,7 @@ impl Page {
         let mut slot_table: Vec<Slot> = Vec::new();
         let mut offset: usize = u16::from_le_bytes(buffer[16..18].try_into().unwrap()) as usize;
         let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
-
+        println!("{}", num_of_tuples);
         for _ in 0..num_of_tuples {
             let record_offset = u16::from_le_bytes(buffer[offset..offset + 2].try_into().unwrap());
             offset += 2;
@@ -165,6 +165,49 @@ impl Page {
         }
 
         slot_table
+    }
+
+    #[rustfmt::skip]
+    /// Returns the total free space in the page (in bytes).
+    pub fn free_space_in_bytes(&self) -> u16 {
+        let mut free_space = 0;
+        let fst = self.free_space_table();
+        for fse in fst{
+            free_space+=fse.1
+        }
+        free_space
+    }
+
+    /// Returns the largest free space chunk (if any) in the form of (offset, length).
+    pub fn max_free_space(&self) -> Option<(u16, u16)> {
+        let fst = self.free_space_table();
+        let max = fst.into_iter().max_by_key(|x| x.1);
+        max
+    }
+
+    /// Returns all available free slots in the form `(offset, length)`.
+    /// `offset` is the start position, `length` is how many bytes are free from there.
+    pub fn free_space_table(&self) -> Vec<(u16, u16)> {
+        let mut fst: Vec<(u16, u16)> = Vec::new();
+        let free_space =
+            self.page_header.slot_table_offset() - self.page_header.free_space_offset();
+        if free_space > 0 {
+            fst.push((self.page_header.free_space_offset(), free_space));
+        }
+
+        let mut prev_slot_start = self.page_header.free_space_offset();
+        for slot in &self.slot_table {
+            if slot.is_deleted() == 1 {
+                fst.push((slot.record_offset(), slot.record_size()));
+            } else {
+                let free_space = prev_slot_start - (slot.record_offset() + slot.record_size());
+                if free_space > 0 {
+                    fst.push((slot.record_offset() + slot.record_size(), free_space));
+                }
+            }
+            prev_slot_start = slot.record_offset();
+        }
+        fst
     }
 
     /// Getter & Setter methods
