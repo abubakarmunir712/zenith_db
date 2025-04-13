@@ -1,11 +1,11 @@
 // Importing custom types for each supported data type.
-use crate::types::char::CHAR;
-use crate::types::bool::BOOL;
-use crate::types::int::INT;
-use crate::types::date::DATE;
-use crate::types::time::TIME;
-use crate::types::date_time::DATETIME;
 use crate::storage::catalog::ColumnInfo;
+use crate::types::bool::BOOL;
+use crate::types::char::CHAR;
+use crate::types::date::DATE;
+use crate::types::date_time::DATETIME;
+use crate::types::int::INT;
+use crate::types::time::TIME;
 
 /// Enum representing all supported data types in the system.
 /// Each variant wraps a corresponding custom type implementation.
@@ -52,7 +52,7 @@ impl DataType {
     /// # Returns
     /// * `Ok(DataType)` - Deserialized `DataType` object if successful.
     /// * `Err(String)` - Error message if deserialization fails or types are incompatible.
-    /// 
+    ///
     pub fn from_bytes(data: &[u8], column_info: &ColumnInfo) -> Result<Self, String> {
         match &column_info.data_type {
             DataType::CHAR(_) => {
@@ -60,12 +60,10 @@ impl DataType {
                 Ok(DataType::CHAR(CHAR::new(column_info.max_data_size, value).unwrap())) //CHECK THIS CODE "?" missing
             }
             DataType::VARCHAR(_) => {
-                let value = std::str::from_utf8(data).map_err(|_| "Invalid VARCHAR bytes")?;
-                Ok(DataType::VARCHAR(CHAR::new(column_info.max_data_size, value).unwrap())) //CHECK THIS CODE "?" missing
+                let value = CHAR::from_bytes(data.to_vec(), column_info.max_data_size);
+                Ok(DataType::VARCHAR(value.unwrap())) //CHECK THIS CODE "?" missing
             }
-            DataType::BOOL(_) => {
-                Ok(DataType::BOOL(BOOL::from_bytes(&[data[0]])))
-            }
+            DataType::BOOL(_) => Ok(DataType::BOOL(BOOL::from_bytes(&[data[0]]))),
             DataType::INT(_) => {
                 if data.len() != 4 {
                     return Err("Invalid INT size".into());
@@ -88,9 +86,10 @@ impl DataType {
                 if data.len() != 7 {
                     return Err("Invalid DATETIME size".into());
                 }
-                Ok(DataType::DATETIME(DATETIME::from_bytes(&data.try_into().unwrap())))
+                Ok(DataType::DATETIME(DATETIME::from_bytes(
+                    &data.try_into().unwrap(),
+                )))
             }
         }
     }
-    
 }
