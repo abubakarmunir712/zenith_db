@@ -1,3 +1,4 @@
+// Importing custom types for each supported data type.
 use crate::types::char::CHAR;
 use crate::types::bool::BOOL;
 use crate::types::int::INT;
@@ -6,19 +7,30 @@ use crate::types::time::TIME;
 use crate::types::date_time::DATETIME;
 use crate::storage::catalog::ColumnInfo;
 
+/// Enum representing all supported data types in the system.
+/// Each variant wraps a corresponding custom type implementation.
 pub enum DataType {
-    CHAR(CHAR),
-    VARCHAR(CHAR),
-    BOOL(BOOL),
-    INT(INT),
-    DATE(DATE),
-    TIME(TIME),
-    DATETIME(DATETIME),
+    CHAR(CHAR),         // Fixed-length character type
+    VARCHAR(CHAR),      // Variable-length character type
+    BOOL(BOOL),         // Boolean type (true/false)
+    INT(INT),           // Integer type
+    DATE(DATE),         // Date type
+    TIME(TIME),         // Time type
+    DATETIME(DATETIME), // Combined Date and Time type
 }
 
 impl DataType {
+    /// Serializes the `DataType` instance into a byte vector based on the `ColumnInfo`.
+    ///
+    /// # Arguments
+    /// * `column_info` - Metadata about the column, used to validate matching types.
+    ///
+    /// # Returns
+    /// * `Ok(Vec<u8>)` - Serialized byte representation if types match.
+    /// * `Err(String)` - Error message if there's a mismatch between value and column type.
     pub fn to_bytes(&self, column_info: &ColumnInfo) -> Result<Vec<u8>, String> {
         match (self, &column_info.data_type) {
+            // Match DataType variants and serialize accordingly
             (DataType::CHAR(c), DataType::CHAR(_)) => Ok(c.to_bytes(true)),
             (DataType::VARCHAR(v), DataType::VARCHAR(_)) => Ok(v.to_bytes(false)),
             (DataType::BOOL(b), DataType::BOOL(_)) => Ok(b.to_bytes().to_vec()),
@@ -26,10 +38,21 @@ impl DataType {
             (DataType::DATE(d), DataType::DATE(_)) => Ok(d.to_bytes().to_vec()),
             (DataType::TIME(t), DataType::TIME(_)) => Ok(t.to_bytes().to_vec()),
             (DataType::DATETIME(dt), DataType::DATETIME(_)) => Ok(dt.to_bytes().to_vec()),
+            // Return error if types do not match
             _ => Err("Mismatched DataType and ColumnInfo".to_string()),
         }
     }
 
+    /// Deserializes a byte slice into a `DataType` instance based on the `ColumnInfo`.
+    ///
+    /// # Arguments
+    /// * `data` - Byte slice representing the raw data.
+    /// * `column_info` - Metadata about the column, used to determine which type to deserialize into.
+    ///
+    /// # Returns
+    /// * `Ok(DataType)` - Deserialized `DataType` object if successful.
+    /// * `Err(String)` - Error message if deserialization fails or types are incompatible.
+    /// 
     pub fn from_bytes(data: &[u8], column_info: &ColumnInfo) -> Result<Self, String> {
         match &column_info.data_type {
             DataType::CHAR(_) => {

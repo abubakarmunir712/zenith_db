@@ -1,21 +1,29 @@
 use crate::enums::datatypes::DataType;
-use bincode;
-
-//Catalog table stored as a struct
+// CatalogTable struct represents the metadata of a table in the database.
 pub struct CatalogTable {
-    pub table_name: String,
-    pub database_name: String,
-    pub no_of_fixed_columns: u16,
-    pub no_of_variable_columns: u16,
-    pub fixed_columns: Vec<ColumnInfo>,
-    pub variable_columns: Vec<ColumnInfo>,
+    pub table_name: String,            // Name of the table
+    pub database_name: String,          // Name of the database the table belongs to
+    pub no_of_fixed_columns: u16,       // Number of fixed-length columns
+    pub no_of_variable_columns: u16,    // Number of variable-length columns
+    pub fixed_columns: Vec<ColumnInfo>, // Metadata of fixed-length columns
+    pub variable_columns: Vec<ColumnInfo>, // Metadata of variable-length columns
 }
+
+// ColumnInfo struct represents metadata for an individual column.
 pub struct ColumnInfo {
-    pub column_name: String,
-    pub max_data_size: u32,
-    pub data_type: DataType,
+    pub column_name: String,    // Name of the column
+    pub max_data_size: u32,     // Maximum size of data stored in the column (in bytes)
+    pub data_type: DataType,    // Data type of the column
 }
+
 impl CatalogTable {
+    /// Creates a new instance of CatalogTable.
+    /// 
+    /// # Arguments
+    /// * `table_name` - Name of the table.
+    /// * `database_name` - Name of the database.
+    /// * `fixed_columns` - List of fixed-length columns.
+    /// * `variable_columns` - List of variable-length columns.
     pub fn new(
         table_name: String,
         database_name: String,
@@ -23,9 +31,11 @@ impl CatalogTable {
         variable_columns: Vec<ColumnInfo>,
     ) -> Self {
 
+        // Calculate number of fixed and variable columns
         let no_of_fixed_columns = fixed_columns.len() as u16;
         let no_of_variable_columns = variable_columns.len() as u16;
 
+        // Return a new CatalogTable instance
         Self {
             table_name,
             database_name,
@@ -36,12 +46,19 @@ impl CatalogTable {
         }
     }
 
-    pub fn size(&self)->u16{
-        self.no_of_fixed_columns+self.no_of_variable_columns
+    /// Returns the total number of columns (fixed + variable) in the table.
+    pub fn size(&self) -> u16 {
+        self.no_of_fixed_columns + self.no_of_variable_columns
     }
 }
 
 impl ColumnInfo {
+    /// Creates a new instance of ColumnInfo.
+    /// 
+    /// # Arguments
+    /// * `column_name` - Name of the column.
+    /// * `max_data_size` - Maximum data size in bytes.
+    /// * `data_type` - Data type of the column.
     pub fn new(column_name: String, max_data_size: u32, data_type: DataType) -> Self {
         Self {
             column_name,
@@ -50,7 +67,9 @@ impl ColumnInfo {
         }
     }
 }
+
 impl ColumnInfo {
+        /// Calculates and returns the size of the column based on its data type.
     pub fn size(&self) -> usize {
         match self.data_type {
             DataType::CHAR(_) => self.max_data_size as usize,
@@ -63,39 +82,3 @@ impl ColumnInfo {
         }
     }
 }
-
-
-//The below code is for testing, will form proper tests later.
-
-// fn main() -> bincode::Result<()>
-
-// {
-//     let catalog = CatalogTable {
-
-//         table_name: "users".to_string(),
-//         no_of_columns:2,
-//         columns: vec![
-//             ColumnInfo {
-//                 column_name: "id".to_string(),
-//                 max_data_size:4,
-//                 data_type: DataType::Integer,
-//             },
-//             ColumnInfo {
-//                 column_name: "username".to_string(),
-//                 max_data_size:200,
-//                 data_type: DataType::Varchar,
-//             },
-
-//         ],
-//     };
-
-//     // Serialize to binary
-//     let encoded: Vec<u8> = bincode::serialize(&catalog)?;
-//     println!("Serialized catalog ({} bytes)", encoded.len());
-
-//     // Deserialize back
-//     let decoded: CatalogTable = bincode::deserialize(&encoded)?;
-//     println!("Deserialized catalog: {:#?}", decoded);
-
-//    Ok(())
-// }
