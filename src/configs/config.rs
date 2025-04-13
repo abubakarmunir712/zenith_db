@@ -10,4 +10,5 @@
 
 pub mod Config {
     pub const PAGE_SIZE: u32 = 4096; // Size of page in bytes
+    pub const PAGE_HEADER_SIZE: u16 = 20;
 }

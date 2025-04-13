@@ -36,4 +36,16 @@ impl Slot {
     pub fn is_deleted(&self) -> u8 {
         self.is_deleted
     }
+
+    pub fn set_record_size(&mut self, record_size: u16) {
+        self.record_size = record_size;
+    }
+
+    pub fn set_record_offset(&mut self, record_offset: u16) {
+        self.record_offset = record_offset;
+    }
+
+    pub fn set_is_deleted(&mut self, is_deleted: u8) {
+        self.is_deleted = is_deleted;
+    }
 }

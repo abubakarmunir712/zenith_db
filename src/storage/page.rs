@@ -9,9 +9,12 @@
 // the buffer pool and file I/O system.
 //
 
+use core::num;
+
 use super::page_header::PageHeader;
 use super::slot::Slot;
 use crate::configs::config::Config::PAGE_SIZE;
+use crate::enums::page_errors::PageError;
 
 /// Represents a database page, containing metadata, data, and a slot table.
 /// Pages store records and are managed within the buffer pool.
@@ -52,11 +55,26 @@ impl Page {
     /// A new `Page` instance with default settings.
 
     pub fn new(page_id: u32, lsn: u64) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(4076);
+        data.resize(4076, 0);
         Page {
             is_dirty: true,
-            data: Vec::new(),
+            data,
             page_header: PageHeader::new(page_id, lsn, 20, 0, PAGE_SIZE as u16),
             slot_table: Vec::new(),
+            pin_count: 0,
+        }
+    }
+
+    /// Constructor for testing purposes (remove after testing)
+    pub fn new_test(page_header: PageHeader, slot_table: Vec<Slot>) -> Self {
+        let mut data: Vec<u8> = Vec::with_capacity(4076);
+        data.resize(4076, 0);
+        Page {
+            is_dirty: true,
+            data,
+            page_header,
+            slot_table,
             pin_count: 0,
         }
     }
@@ -139,12 +157,15 @@ impl Page {
     fn _deserialize_data(buffer: &[u8; PAGE_SIZE as usize]) -> Vec<u8> {
         let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
         if num_of_tuples == 0 {
-            return Vec::new();
+            let mut data: Vec<u8> = Vec::with_capacity(4076);
+            data.resize(4076, 0);
+            return data;
         }
         let data_start: usize = 20;
         // Reading free_space_start
         let data_end: usize = u16::from_le_bytes(buffer[12..14].try_into().unwrap()) as usize;
-        let data: Vec<u8> = buffer[data_start..data_end].to_vec();
+        let mut data: Vec<u8> = buffer[data_start..data_end].to_vec();
+        data.reserve(4076 - data.capacity());
         data
     }
 
@@ -210,7 +231,104 @@ impl Page {
         fst
     }
 
-    /// Getter & Setter methods
+    /// Deletes the top (first) slot in the slot table
+    fn _delete_top_slot(&mut self) {
+        let slot_number = 0;
+
+        self.page_header
+            .set_slot_table_offset(self.page_header.slot_table_offset() + 8);
+        // Add space freed by deleting slot (8 bytes) to data
+        self.data.resize(self.data.len() + 8, 0);
+        self.slot_table.remove(0);
+        if self.slot_table.len() > 0 {
+            let start_offset =
+                self.slot_table[0].record_offset() + self.slot_table[0].record_size();
+            self.page_header.set_free_space_offset(start_offset);
+            if self.slot_table[0].is_deleted() == 1 {
+                self._delete_top_slot();
+            }
+        } else {
+            let start_offset = self.slot_table[slot_number].record_offset();
+            self.page_header.set_free_space_offset(start_offset);
+        }
+    }
+
+    /// Defragments adjacent deleted slots and merges record space
+    fn _defragment_slots(&mut self, slot_number: usize) {
+        let total_slots = self.slot_table.len();
+        let mut offsets_to_del: Vec<usize> = Vec::new();
+        let mut cur_slot_offset: u16 = self.slot_table[slot_number].record_offset();
+        let mut cur_slot_size: u16 = self.slot_table[slot_number].record_size();
+        let prev_slot_offset: u16 = self.slot_table[slot_number - 1].record_offset();
+        let prev_slot_size: u16 = self.slot_table[slot_number - 1].record_size();
+
+        if slot_number < total_slots - 1 {
+            let next_slot_offset: u16 = self.slot_table[slot_number + 1].record_offset();
+            let next_slot_size: u16 = self.slot_table[slot_number + 1].record_size();
+            if self.slot_table[slot_number + 1].is_deleted() == 1 {
+                offsets_to_del.push(slot_number + 1);
+                cur_slot_offset = next_slot_offset;
+            } else {
+                cur_slot_offset = next_slot_offset + next_slot_size;
+            }
+
+            self.slot_table[slot_number].set_record_offset(cur_slot_offset);
+        }
+
+        if self.slot_table[slot_number - 1].is_deleted() == 1 {
+            offsets_to_del.push(slot_number - 1);
+            cur_slot_size = prev_slot_offset + prev_slot_size - cur_slot_offset;
+        } else {
+            cur_slot_size = prev_slot_offset - cur_slot_offset;
+        }
+        self.slot_table[slot_number].set_record_size(cur_slot_size);
+
+        // Remove all marked deleted slots
+        for offset in offsets_to_del {
+            self.slot_table.remove(offset);
+        }
+    }
+
+    /// Public function to delete a slot by index.
+    ///
+    /// # Parameters
+    /// - `slot_number`: The index of the slot to delete.
+    ///
+    /// # Returns
+    /// - `Result<(), PageError>`: Returns `Ok(())` if the deletion was successful, or `PageError::SlotNotFound` if the index is invalid.
+    ///
+    /// # Behavior
+    /// - If the `slot_number` is 0, it calls `_delete_top_slot()` to handle special logic for the first slot.
+    /// - For other slots, it marks the slot as deleted and calls `_defragment_slots()` to compact the data.
+    pub fn delete_slot(&mut self, slot_number: usize) -> Result<(), PageError> {
+        if slot_number >= self.slot_table.len() {
+            return Err(PageError::SlotNotFound);
+        }
+        if slot_number == 0 {
+            self._delete_top_slot();
+        } else {
+            self.slot_table[slot_number].set_is_deleted(1);
+            self._defragment_slots(slot_number);
+        }
+        Ok(())
+    }
+
+    /// Adds a new slot to the beginning of the slot table.
+    ///
+    /// # Parameters
+    /// - `record_offset`: The offset where the record starts in the page.
+    /// - `record_size`: The size of the record to be stored.
+    ///
+    /// # Returns
+    /// - `usize`: The updated number of slots in the slot table after insertion.
+    fn insert_slot(&mut self, record_offset: u16, record_size: u16) -> usize {
+        self.slot_table
+            .insert(0, Slot::new(record_offset, record_size, 0));
+        self.data.resize(self.data.len() - 8, 0);
+        self.slot_table.len()
+    }
+
+    // Getter & Setter methods
     ///
     /// It increments the pin count when a page is accessed.
     pub fn pin(&mut self) {

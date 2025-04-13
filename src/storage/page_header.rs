@@ -48,7 +48,7 @@ impl PageHeader {
     }
 
     /// Getter & setter methods
-    /// 
+    ///
 
     pub fn page_id(&self) -> u32 {
         self.page_id
@@ -68,5 +68,13 @@ impl PageHeader {
 
     pub fn slot_table_offset(&self) -> u16 {
         self.slot_table_offset
+    }
+
+    pub fn set_free_space_offset(&mut self, free_space_offset: u16) {
+        self.free_space_offset = free_space_offset;
+    }
+
+    pub fn set_slot_table_offset(&mut self, slot_table_offset: u16) {
+        self.slot_table_offset = slot_table_offset;
     }
 }
