@@ -1,6 +1,6 @@
 /// Represents an INT (32-bit signed integer) data type.
 pub struct INT {
-    pub value: i32,
+    value: i32,
 }
 
 impl INT {
@@ -19,5 +19,9 @@ impl INT {
         INT {
             value: i32::from_le_bytes(*bytes),
         }
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
     }
 }

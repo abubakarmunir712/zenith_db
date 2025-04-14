@@ -1,6 +1,6 @@
 // Define a struct `BOOL` to represent a boolean value.
 pub struct BOOL {
-    pub value: bool, // Holds the actual boolean value.
+    value: bool, // Holds the actual boolean value.
 }
 
 impl BOOL {
@@ -23,5 +23,8 @@ impl BOOL {
             return Self { value: false }; // If byte is 0, set value to false.
         }
         return Self { value: true }; // Otherwise, set value to true.
+    }
+    pub fn value(&self) -> bool {
+        self.value
     }
 }

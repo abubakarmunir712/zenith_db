@@ -6,12 +6,13 @@ use crate::types::date::DATE;
 use crate::types::date_time::DATETIME;
 use crate::types::int::INT;
 use crate::types::time::TIME;
+use crate::types::varchar::VARCHAR;
 
 /// Enum representing all supported data types in the system.
 /// Each variant wraps a corresponding custom type implementation.
 pub enum DataType {
     CHAR(CHAR),         // Fixed-length character type
-    VARCHAR(CHAR),      // Variable-length character type
+    VARCHAR(VARCHAR),      // Variable-length character type
     BOOL(BOOL),         // Boolean type (true/false)
     INT(INT),           // Integer type
     DATE(DATE),         // Date type
@@ -31,8 +32,8 @@ impl DataType {
     pub fn to_bytes(&self, column_info: &ColumnInfo) -> Result<Vec<u8>, String> {
         match (self, &column_info.data_type) {
             // Match DataType variants and serialize accordingly
-            (DataType::CHAR(c), DataType::CHAR(_)) => Ok(c.to_bytes(true)),
-            (DataType::VARCHAR(v), DataType::VARCHAR(_)) => Ok(v.to_bytes(false)),
+            (DataType::CHAR(c), DataType::CHAR(_)) => Ok(c.to_bytes()),
+            (DataType::VARCHAR(v), DataType::VARCHAR(_)) => Ok(v.to_bytes()),
             (DataType::BOOL(b), DataType::BOOL(_)) => Ok(b.to_bytes().to_vec()),
             (DataType::INT(i), DataType::INT(_)) => Ok(i.to_bytes().to_vec()),
             (DataType::DATE(d), DataType::DATE(_)) => Ok(d.to_bytes().to_vec()),
@@ -56,11 +57,11 @@ impl DataType {
     pub fn from_bytes(data: &[u8], column_info: &ColumnInfo) -> Result<Self, String> {
         match &column_info.data_type {
             DataType::CHAR(_) => {
-                let value = std::str::from_utf8(data).map_err(|_| "Invalid CHAR bytes")?.trim_end();
-                Ok(DataType::CHAR(CHAR::new(column_info.max_data_size, value).unwrap())) //CHECK THIS CODE "?" missing
+                let value = CHAR::from_bytes(data.to_vec(), column_info.max_data_size).unwrap();
+                Ok(DataType::CHAR(CHAR::new(column_info.max_data_size, value.value()).unwrap())) //CHECK THIS CODE "?" missing
             }
             DataType::VARCHAR(_) => {
-                let value = CHAR::from_bytes(data.to_vec(), column_info.max_data_size);
+                let value = VARCHAR::from_bytes(data.to_vec(), column_info.max_data_size);
                 Ok(DataType::VARCHAR(value.unwrap())) //CHECK THIS CODE "?" missing
             }
             DataType::BOOL(_) => Ok(DataType::BOOL(BOOL::from_bytes(&[data[0]]))),

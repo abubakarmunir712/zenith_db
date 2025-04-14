@@ -12,6 +12,7 @@ use storage::page::slot::Slot;
 use storage::record::record_manager::RecordManager;
 use types::bool::BOOL;
 use types::char::CHAR;
+use types::varchar::VARCHAR;
 use types::int::INT;
 
 fn test_record() {
@@ -36,7 +37,7 @@ fn test_record() {
         variable_columns: vec![ColumnInfo {
             column_name: "Name".to_string(),
             max_data_size: 50,
-            data_type: DataType::VARCHAR(CHAR::new(50, "TestName").unwrap()),
+            data_type: DataType::CHAR(CHAR::new(50, "TestName").unwrap()),
         }],
     };
 
@@ -54,7 +55,7 @@ fn test_record() {
     let record_data: Vec<DataType> = vec![
         DataType::INT(INT::new(4)),      // INT column
         DataType::BOOL(BOOL::new(true)), // BOOL column
-        DataType::VARCHAR(CHAR::new(50, "TestName djhsdjskjdksjdksjdks").unwrap()), // VARCHAR column
+        DataType::CHAR(CHAR::new(50, "TestName djhsdjskjdksjdksjdks").unwrap()), // VARCHAR column
     ];
 
     // Step 4: Serialize the data into the page using RecordManager
@@ -68,9 +69,9 @@ fn test_record() {
     println!("=== Deserialized Record Data ===");
     for (i, data) in deserialized_data.iter().enumerate() {
         match data {
-            DataType::INT(i) => println!("Column {}: INT    = {:<10}", i.value + 1, i.value),
-            DataType::BOOL(b) => println!("Column {}: BOOL   = {:<10}", i + 1, b.value),
-            DataType::VARCHAR(v) => println!("Column {}: VARCHAR = {:<10}", i + 1, v.value),
+            DataType::INT(i) => println!("Column {}: INT    = {:<10}", i.value() + 1, i.value()),
+            DataType::BOOL(b) => println!("Column {}: BOOL   = {:<10}", i + 1, b.value()),
+            DataType::CHAR(v) => println!("Column {}: VARCHAR = {:<10}", i + 1, v.value()),
             _ => println!("Column {}: Unknown DataType", i + 1),
         }
     }
