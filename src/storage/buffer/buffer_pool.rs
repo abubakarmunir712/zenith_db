@@ -11,8 +11,8 @@
 use std::collections::{HashMap, VecDeque};
 use std::io::Error;
 
-use super::file_io::IOEngine;
-use super::page::Page;
+use super::super::io::file_io::IOEngine;
+use super::super::page::page::Page;
 
 pub struct BufferManager {
     /// The actual buffer pool storing pages.

@@ -11,7 +11,7 @@ pub struct PageHeader {
     /// This helps in efficiently finding space for new records.
     free_space_offset: u16,
 
-    /// The total number of records (tuples) currently stored in this page.
+    /// The total number of valid records (tuples) currently stored in this page.
     num_of_tuples: u16,
 
     /// Offset (in bytes) where the slot table begins.

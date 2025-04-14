@@ -1,5 +1,5 @@
 // Importing custom types for each supported data type.
-use crate::storage::catalog::ColumnInfo;
+use crate::storage::catalog::catalog::ColumnInfo;
 use crate::types::bool::BOOL;
 use crate::types::char::CHAR;
 use crate::types::date::DATE;

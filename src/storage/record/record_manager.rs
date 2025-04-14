@@ -1,8 +1,7 @@
 use crate::enums::datatypes::DataType;
-use crate::storage::catalog::CatalogTable;
-use crate::storage::catalog::ColumnInfo;
-use crate::storage::page::Page;
-use crate::storage::record::Record;
+use crate::storage::catalog::catalog::CatalogTable;
+use crate::storage::page::page::Page;
+use crate::storage::record::record::Record;
 
 /// Struct representing the Record Manager, responsible for converting between
 /// raw bytes and human-readable `DataType` representations.

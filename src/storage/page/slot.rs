@@ -24,7 +24,7 @@ impl Slot {
         }
     }
 
-    /// Getter functions
+    /// Getter & setter functions
     pub fn record_offset(&self) -> u16 {
         self.record_offset
     }

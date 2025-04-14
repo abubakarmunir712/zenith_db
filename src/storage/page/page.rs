@@ -9,8 +9,6 @@
 // the buffer pool and file I/O system.
 //
 
-use core::num;
-
 use super::page_header::PageHeader;
 use super::slot::Slot;
 use crate::configs::config::Config::PAGE_SIZE;
@@ -68,8 +66,8 @@ impl Page {
 
     /// Constructor for testing purposes (remove after testing)
     pub fn new_test(page_header: PageHeader, slot_table: Vec<Slot>) -> Self {
-        let mut data: Vec<u8> = Vec::with_capacity(4076);
-        data.resize(4076, 0);
+        let mut data: Vec<u8> = Vec::with_capacity(4076 - slot_table.len() * 8);
+        data.resize(4076 - slot_table.len() * 8, 0);
         Page {
             is_dirty: true,
             data,
@@ -120,20 +118,22 @@ impl Page {
             return;
         }
         let data_start: usize = 20; // Data segment starts from 20th byte
-        let data_end: usize = self.page_header.free_space_offset() as usize;
+        let data_end: usize = self.page_header.slot_table_offset() as usize;
         buffer[data_start..data_end].copy_from_slice(&self.data);
     }
 
+    #[rustfmt::skip]
     fn _serialize_slot_table(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
         let mut offset: usize = self.page_header.slot_table_offset() as usize;
-        for slot in &self.slot_table {
-            buffer[offset..offset + 2].copy_from_slice(&slot.record_offset().to_le_bytes());
+        let slot_table_len = self.slot_table.len();
+        for i in (0..slot_table_len).rev() {
+            buffer[offset..offset + 2].copy_from_slice(&self.slot_table[i].record_offset().to_le_bytes());
             offset += 2;
 
-            buffer[offset..offset + 2].copy_from_slice(&slot.record_size().to_le_bytes());
+            buffer[offset..offset + 2].copy_from_slice(&self.slot_table[i].record_size().to_le_bytes());
             offset += 2;
 
-            buffer[offset..offset + 1].copy_from_slice(&slot.is_deleted().to_le_bytes());
+            buffer[offset..offset + 1].copy_from_slice(&self.slot_table[i].is_deleted().to_le_bytes());
             offset += 4; // Add extra 3 bytes for padding
         }
     }
@@ -171,16 +171,16 @@ impl Page {
 
     fn _deserialize_slot_table(buffer: &[u8; PAGE_SIZE as usize]) -> Vec<Slot> {
         let mut slot_table: Vec<Slot> = Vec::new();
-        let mut offset: usize = u16::from_le_bytes(buffer[16..18].try_into().unwrap()) as usize;
-        let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
-        println!("{}", num_of_tuples);
+        let table_offset: usize = u16::from_le_bytes(buffer[16..18].try_into().unwrap()) as usize;
+        let num_of_tuples = (4096 - table_offset) / 8;
+        let mut offset = 4096;
         for _ in 0..num_of_tuples {
-            let record_offset = u16::from_le_bytes(buffer[offset..offset + 2].try_into().unwrap());
-            offset += 2;
-            let record_size = u16::from_le_bytes(buffer[offset..offset + 2].try_into().unwrap());
-            offset += 2;
+            offset -= 4;
             let is_deleted = u8::from_le_bytes(buffer[offset..offset + 1].try_into().unwrap());
-            offset += 4;
+            offset -= 2;
+            let record_size = u16::from_le_bytes(buffer[offset..offset + 2].try_into().unwrap());
+            offset -= 2;
+            let record_offset = u16::from_le_bytes(buffer[offset..offset + 2].try_into().unwrap());
 
             slot_table.push(Slot::new(record_offset, record_size, is_deleted));
         }
@@ -216,75 +216,75 @@ impl Page {
             fst.push((self.page_header.free_space_offset(), free_space));
         }
 
-        let mut prev_slot_start = self.page_header.free_space_offset();
+        let mut prev_slot_end = 0;
         for slot in &self.slot_table {
             if slot.is_deleted() == 1 {
                 fst.push((slot.record_offset(), slot.record_size()));
             } else {
-                let free_space = prev_slot_start - (slot.record_offset() + slot.record_size());
+                let free_space = slot.record_offset() - prev_slot_end;
                 if free_space > 0 {
-                    fst.push((slot.record_offset() + slot.record_size(), free_space));
+                    fst.push((prev_slot_end, free_space));
                 }
             }
-            prev_slot_start = slot.record_offset();
+            prev_slot_end = slot.record_offset() + slot.record_size();
         }
         fst
     }
 
-    /// Deletes the top (first) slot in the slot table
+    /// Deletes the top (last) slot in the slot table
     fn _delete_top_slot(&mut self) {
-        let slot_number = 0;
+        let mut slot_table_len = self.slot_table.len();
 
         self.page_header
             .set_slot_table_offset(self.page_header.slot_table_offset() + 8);
         // Add space freed by deleting slot (8 bytes) to data
         self.data.resize(self.data.len() + 8, 0);
-        self.slot_table.remove(0);
-        if self.slot_table.len() > 0 {
-            let start_offset =
-                self.slot_table[0].record_offset() + self.slot_table[0].record_size();
-            self.page_header.set_free_space_offset(start_offset);
-            if self.slot_table[0].is_deleted() == 1 {
+        self.slot_table.remove(slot_table_len - 1);
+        slot_table_len -= 1;
+        if slot_table_len > 0 {
+            let free_space_offset = self.slot_table[slot_table_len - 1].record_offset()
+                + self.slot_table[slot_table_len - 1].record_size();
+            self.page_header.set_free_space_offset(free_space_offset);
+            if self.slot_table[slot_table_len - 1].is_deleted() == 1 {
                 self._delete_top_slot();
             }
         } else {
-            let start_offset = self.slot_table[slot_number].record_offset();
-            self.page_header.set_free_space_offset(start_offset);
+            // If slot table is empty set free_space_offset to 20 (default value of empty page)
+            self.page_header.set_free_space_offset(20);
         }
     }
 
     /// Defragments adjacent deleted slots and merges record space
     fn _defragment_slots(&mut self, slot_number: usize) {
-        let total_slots = self.slot_table.len();
-        let mut offsets_to_del: Vec<usize> = Vec::new();
-        let mut cur_slot_offset: u16 = self.slot_table[slot_number].record_offset();
-        let mut cur_slot_size: u16 = self.slot_table[slot_number].record_size();
-        let prev_slot_offset: u16 = self.slot_table[slot_number - 1].record_offset();
-        let prev_slot_size: u16 = self.slot_table[slot_number - 1].record_size();
+        let mut slots_to_del: Vec<usize> = Vec::new();
+        let mut offset = self.slot_table[slot_number].record_offset();
+        let mut size = self.slot_table[slot_number].record_size();
 
-        if slot_number < total_slots - 1 {
-            let next_slot_offset: u16 = self.slot_table[slot_number + 1].record_offset();
-            let next_slot_size: u16 = self.slot_table[slot_number + 1].record_size();
-            if self.slot_table[slot_number + 1].is_deleted() == 1 {
-                offsets_to_del.push(slot_number + 1);
-                cur_slot_offset = next_slot_offset;
+        if slot_number != 0 {
+            let prev_slot = &self.slot_table[slot_number - 1];
+            if prev_slot.is_deleted() == 1 {
+                slots_to_del.push(slot_number - 1);
+                offset = prev_slot.record_offset();
             } else {
-                cur_slot_offset = next_slot_offset + next_slot_size;
+                offset = prev_slot.record_offset() + prev_slot.record_size();
             }
-
-            self.slot_table[slot_number].set_record_offset(cur_slot_offset);
         }
-
-        if self.slot_table[slot_number - 1].is_deleted() == 1 {
-            offsets_to_del.push(slot_number - 1);
-            cur_slot_size = prev_slot_offset + prev_slot_size - cur_slot_offset;
+        let next_slot = &self.slot_table[slot_number + 1];
+        if next_slot.is_deleted() == 1 {
+            slots_to_del.push(slot_number + 1);
+            size = next_slot.record_offset() + next_slot.record_size() - offset;
         } else {
-            cur_slot_size = prev_slot_offset - cur_slot_offset;
+            size = next_slot.record_offset() - offset;
         }
-        self.slot_table[slot_number].set_record_size(cur_slot_size);
 
+        self.slot_table[slot_number].set_record_offset(offset);
+        self.slot_table[slot_number].set_record_size(size);
+
+        slots_to_del.sort();
+        slots_to_del.reverse();
         // Remove all marked deleted slots
-        for offset in offsets_to_del {
+        for offset in slots_to_del {
+            println!("{}",offset);
             self.slot_table.remove(offset);
         }
     }
@@ -301,10 +301,11 @@ impl Page {
     /// - If the `slot_number` is 0, it calls `_delete_top_slot()` to handle special logic for the first slot.
     /// - For other slots, it marks the slot as deleted and calls `_defragment_slots()` to compact the data.
     pub fn delete_slot(&mut self, slot_number: usize) -> Result<(), PageError> {
-        if slot_number >= self.slot_table.len() {
+        let slot_table_len = self.slot_table.len();
+        if slot_number >= slot_table_len {
             return Err(PageError::SlotNotFound);
         }
-        if slot_number == 0 {
+        if slot_number == slot_table_len - 1 {
             self._delete_top_slot();
         } else {
             self.slot_table[slot_number].set_is_deleted(1);
@@ -320,12 +321,13 @@ impl Page {
     /// - `record_size`: The size of the record to be stored.
     ///
     /// # Returns
-    /// - `usize`: The updated number of slots in the slot table after insertion.
+    /// - `usize`: The index at which new slot is inserted in slot table
     fn insert_slot(&mut self, record_offset: u16, record_size: u16) -> usize {
-        self.slot_table
-            .insert(0, Slot::new(record_offset, record_size, 0));
+        let slot = Slot::new(record_offset, record_size, 0);
+        let slot_table_len = self.slot_table.len();
+        self.slot_table.push(slot);
         self.data.resize(self.data.len() - 8, 0);
-        self.slot_table.len()
+        slot_table_len
     }
 
     // Getter & Setter methods
