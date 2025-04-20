@@ -1,6 +1,9 @@
 use crate::configs::types_config::TypesConfig::{MAX_CHAR_SIZE, MIN_CHAR_SIZE};
 use crate::enums::type_errors::CharError;
+use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct CHAR {
     size: u32, // Size of the CHAR field (can be used for both CHAR and VARCHAR depending on the padding)
     value: String, // The actual value of the CHAR field

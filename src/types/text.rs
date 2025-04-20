@@ -1,6 +1,9 @@
 use crate::configs::types_config::TypesConfig::{MAX_TEXT_SIZE, MIN_TEXT_SIZE};
 use crate::enums::type_errors::CharError;
+use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct TEXT {
     value: String, // The actual text value
 }

@@ -1,4 +1,8 @@
 use crate::enums::type_errors::DateTimeError;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 
 pub struct TIME {
     hours: u8,

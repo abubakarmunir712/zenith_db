@@ -15,10 +15,43 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Error, ErrorKind, Read, Result, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use crate::configs::config::Config::PAGE_SIZE;
+use crate::CatalogTable;
+use std::io::BufWriter;
+use std::io::BufReader;
 
 pub struct IOEngine;
 
 impl IOEngine {
+
+    pub fn save_catalog_table(table: &CatalogTable) -> Result<()> {
+        // Ensure `catalog_files/<database>` exists
+        let base_dir = PathBuf::from("catalog_files").join(&table.database_name);
+        fs::create_dir_all(&base_dir)?;
+
+        // File path: catalog_files/<db_name>/<table_name>.bin
+        let file_path = base_dir.join(format!("{}.bin", &table.table_name));
+        let file = File::create(file_path)?;
+        let writer = BufWriter::new(file);
+
+        bincode::serialize_into(writer, table)
+        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn load_catalog_table(database_name: &str, table_name: &str) -> Result<CatalogTable> {
+        let file_path = PathBuf::from("catalog_files")
+            .join(database_name)
+            .join(format!("{}.bin", table_name));
+        
+        let file = File::open(file_path)?;
+        let reader = BufReader::new(file);
+
+        let table: CatalogTable = bincode::deserialize_from(reader)
+        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+        Ok(table)
+    }
+
+    
     /// Creates a new database by creating a directory with the given name.1
     pub fn create_database(database_name: &str) -> Result<()> {
         if db_exists(database_name) {
@@ -80,7 +113,7 @@ impl IOEngine {
 
         //making a fixed size array of 4kb and reading exact a page into it.
         let mut buffer: [u8; PAGE_SIZE as usize] = [0; PAGE_SIZE as usize];
-        file.read_exact(&mut buffer)?;
+        file.read_exact(&mut buffer)?;  
 
         Ok(buffer)
     }

@@ -7,9 +7,13 @@ use crate::types::date_time::DATETIME;
 use crate::types::int::INT;
 use crate::types::time::TIME;
 use crate::types::varchar::VARCHAR;
-
+use serde::{Serialize, Deserialize};
 /// Enum representing all supported data types in the system.
 /// Each variant wraps a corresponding custom type implementation.
+/// use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub enum DataType {
     CHAR(CHAR),         // Fixed-length character type
     VARCHAR(VARCHAR),      // Variable-length character type

@@ -1,5 +1,9 @@
 use crate::configs::types_config::TypesConfig::{MAX_DECIMAL_PRECISION, MIN_DECIMAL_PRECISION};
 use crate::enums::type_errors::DecimalError;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct DECIMAL {
     value: i128,
     scale: u32,

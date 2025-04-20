@@ -1,4 +1,8 @@
 /// Represents a BIGINT (64-bit signed integer) data type.
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct BIGINT {
     pub value: i64,
 }

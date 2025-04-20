@@ -1,4 +1,8 @@
 // Define a struct `BOOL` to represent a boolean value.
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct BOOL {
     value: bool, // Holds the actual boolean value.
 }

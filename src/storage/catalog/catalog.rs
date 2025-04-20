@@ -1,5 +1,8 @@
 use crate::enums::datatypes::DataType;
-// CatalogTable struct represents the metadata of a table in the database.
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct CatalogTable {
     pub table_name: String,            // Name of the table
     pub database_name: String,          // Name of the database the table belongs to
@@ -10,6 +13,9 @@ pub struct CatalogTable {
 }
 
 // ColumnInfo struct represents metadata for an individual column.
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct ColumnInfo {
     pub column_name: String,    // Name of the column
     pub max_data_size: u32,     // Maximum size of data stored in the column (in bytes)

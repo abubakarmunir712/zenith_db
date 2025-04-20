@@ -1,4 +1,8 @@
 /// Represents a SMALLINT (16-bit signed integer) data type.
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct SMALLINT {
     value: i16,
 }

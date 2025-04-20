@@ -14,7 +14,7 @@ use types::bool::BOOL;
 use types::char::CHAR;
 use types::varchar::VARCHAR;
 use types::int::INT;
-
+use storage::io::file_io::IOEngine;
 fn test_record() {
     // Step 1: Create a CatalogTable with fixed and variable columns
     let catalog = CatalogTable {
@@ -203,10 +203,48 @@ fn test_slot() {
 }
 
 
+fn test_catalog_io(){
+    let table = CatalogTable::new(
+        "students".to_string(),
+        "demo_db".to_string(),
+        vec![ColumnInfo {
+            column_name: "ID".to_string(),
+            max_data_size: 4,
+            data_type: DataType::INT(INT::new(4)),
+        },
+        ColumnInfo {
+            column_name: "IsActive".to_string(),
+            max_data_size: 1,
+            data_type: DataType::BOOL(BOOL::new(true)),
+        },
+        ],
+        vec![ColumnInfo {
+            column_name: "Name".to_string(),
+            max_data_size: 50,
+            data_type: DataType::CHAR(CHAR::new(50, "TestName").unwrap()),
+        }],
+    );
 
+    match IOEngine::save_catalog_table(&table) {
+        Ok(_) => println!(" Table written successfully."),
+        Err(e) => eprintln!(" Failed to write table: {}", e),
+    }
+
+    match IOEngine::load_catalog_table("demo_db", "students") {
+        Ok(loaded_table) => {
+            println!(" Deserialized Catalog Table:\n{:#?}", loaded_table);
+        }
+        Err(e) => {
+            eprintln!(" Failed to read table: {}", e);
+        }
+    }
+
+}
 // These are temporary test functions for verifying Page, Record, and Slot functionality.
 // They should be removed after moving tests to the dedicated test directory (e.g., tests/).
 fn main() {
+    println!("\n=========================================== CATALOG IO TEST ===========================================");
+    test_catalog_io();
     println!("\n=========================================== PAGE TEST ===========================================");
     test_page();
     println!("\n----------------------------------------------\n");

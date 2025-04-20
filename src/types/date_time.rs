@@ -1,6 +1,10 @@
 use crate::enums::type_errors::DateTimeError;
 
 use super::{date::DATE, time::TIME};
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 
 pub struct DATETIME {
     date: DATE,

@@ -1,4 +1,8 @@
 /// Represents an INT (32-bit signed integer) data type.
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct INT {
     value: i32,
 }

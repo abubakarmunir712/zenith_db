@@ -1,5 +1,9 @@
 use crate::enums::type_errors::DateTimeError;
 
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct DATE {
     year: u16,
     day: u8,

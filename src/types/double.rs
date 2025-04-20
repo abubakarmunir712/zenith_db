@@ -1,4 +1,8 @@
 /// Represents a DOUBLE (64-bit floating point) data type.
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct DOUBLE {
     value: f64,
 }
