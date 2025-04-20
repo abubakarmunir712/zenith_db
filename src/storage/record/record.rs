@@ -110,4 +110,14 @@ impl Record {
             variable_fields_data,
         }
     }
+
+    pub fn total_record_size_in_bytes(&self) -> u16
+    {
+        let size_of_header = 2 + 2; // total_size_of_fixed_fields + no_of_variable_fields
+        let size_of_variable_sizes = self.sizes_of_variable_fields.len() * 2;
+        let size_of_fixed_data = self.fixed_fields_data.len();
+        let size_of_variable_data = self.variable_fields_data.len();
+
+        (size_of_header + size_of_variable_sizes + size_of_fixed_data + size_of_variable_data) as u16
+    }
 }

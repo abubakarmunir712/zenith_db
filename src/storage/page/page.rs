@@ -322,7 +322,7 @@ impl Page {
     ///
     /// # Returns
     /// - `usize`: The index at which new slot is inserted in slot table
-    fn insert_slot(&mut self, record_offset: u16, record_size: u16) -> usize {
+    pub fn insert_slot(&mut self, record_offset: u16, record_size: u16) -> usize {
         let slot = Slot::new(record_offset, record_size, 0);
         let slot_table_len = self.slot_table.len();
         self.slot_table.push(slot);

@@ -60,7 +60,7 @@ fn test_record() {
 
     // Step 4: Serialize the data into the page using RecordManager
     let record_start = 0; // Starting position in the page buffer
-    RecordManager::from_human_readable(&mut page, &catalog, record_start, record_data);
+    RecordManager::insert_record(&mut page, &catalog, record_data);
 
     // Step 5: Deserialize the data from the page
     let deserialized_data = RecordManager::to_human_readable(&page, &catalog, record_start);

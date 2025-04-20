@@ -8,8 +8,6 @@ use crate::storage::record::record::Record;
 pub struct RecordManager;
 
 impl RecordManager {
-
-    
     /// Converts a record in a page starting at a given offset into a list of `DataType` values.
     ///
     /// # Arguments
@@ -71,13 +69,11 @@ impl RecordManager {
     /// 3. Update `total_size_of_fixed_fields` to reflect the total size of all fixed fields.
     /// 4. Process variable columns: Convert each attribute to bytes, update the `sizes_of_variable_fields` vector, and
     ///    store the variable-length field data.
-    /// 5. Serialize the `Record` and store it at the specified location in the `page`.
+    /// 5. Return Record
     pub fn from_human_readable(
-        page: &mut Page,
         catalog: &CatalogTable,
-        record_start: usize,
         attributes: Vec<DataType>,
-    ) {
+    ) -> Record{
         // Initialize an empty record to store the fixed and variable field data
         let mut record = Record {
             total_size_of_fixed_fields: 0,        // Total size of all fixed fields
@@ -127,9 +123,40 @@ impl RecordManager {
 
         // Set the total number of variable fields
         record.no_of_variable_fields = record.sizes_of_variable_fields.len() as u16;
+        record
 
-        // Serialize the record into the page at the specified location
-        record.serialize(&mut page.data, record_start);
+        // // Serialize the record into the page at the specified location
+        // record.serialize(&mut page.data, record_start);
     }
 
+    pub fn insert_record(
+        page: &mut Page,
+        catalog: &CatalogTable,
+        attributes: Vec<DataType>,
+    ) {
+
+        let record: Record= RecordManager::from_human_readable(catalog,attributes);
+        let record_size: u16=record.total_record_size_in_bytes();
+
+        let insert_offset=RecordManager::calculate_suitable_offset_for_record(record_size, page);
+        record.serialize(&mut page.data, insert_offset as usize);
+        page.insert_slot(insert_offset,record_size);
+
+    }
+
+
+    pub fn calculate_suitable_offset_for_record(record_size: u16, page: &Page) -> u16 {
+        let free_space_table = page.free_space_table();
+        let mut best_offset = 0;
+        let mut best_size = u16::MAX;
+
+        for (offset, size) in free_space_table {
+            if size >= record_size && size < best_size {
+                best_size = size;
+                best_offset = offset;
+            }
+        }
+
+        best_offset
+    }
 }
