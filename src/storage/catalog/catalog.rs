@@ -10,6 +10,7 @@ pub struct CatalogTable {
     pub no_of_variable_columns: u16,    // Number of variable-length columns
     pub fixed_columns: Vec<ColumnInfo>, // Metadata of fixed-length columns
     pub variable_columns: Vec<ColumnInfo>, // Metadata of variable-length columns
+    pub is_dirty: bool,
 }
 
 // ColumnInfo struct represents metadata for an individual column.
@@ -40,6 +41,7 @@ impl CatalogTable {
         // Calculate number of fixed and variable columns
         let no_of_fixed_columns = fixed_columns.len() as u16;
         let no_of_variable_columns = variable_columns.len() as u16;
+        let is_dirty:bool = false;
 
         // Return a new CatalogTable instance
         Self {
@@ -49,6 +51,8 @@ impl CatalogTable {
             no_of_variable_columns,
             fixed_columns,
             variable_columns,
+            is_dirty
+            
         }
     }
 
@@ -86,5 +90,14 @@ impl ColumnInfo {
             DataType::TIME(_) => 3,
             DataType::DATETIME(_) => 7,
         }
+    }
+}
+impl CatalogTable {
+    pub fn is_dirty(&self) -> bool {
+        self.is_dirty
+    }
+
+    pub fn set_dirty(&mut self, value: bool) {
+        self.is_dirty = value;
     }
 }
