@@ -9,6 +9,7 @@
 ///
 
 pub mod Config {
+    pub const DB_PATH: &str = "";
     pub const PAGE_SIZE: u32 = 4096; // Size of page in bytes
     pub const PAGE_HEADER_SIZE: u16 = 20; // Size of page header in bytes
 }
