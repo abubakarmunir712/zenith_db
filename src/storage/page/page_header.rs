@@ -1,5 +1,7 @@
 /// Metadata for a database page, stored at the beginning of each page.
 /// Helps manage free space, track records, and assist in recovery.
+use crate::configs::config::Config::PAGE_SIZE;
+
 pub struct PageHeader {
     /// Unique identifier for this page within a file.
     page_id: u32,
@@ -47,6 +49,34 @@ impl PageHeader {
         }
     }
 
+    pub fn serialize(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
+        buffer[0..4].copy_from_slice(&self.page_id.to_le_bytes());
+
+        buffer[4..12].copy_from_slice(&self.lsn.to_le_bytes());
+
+        buffer[12..14].copy_from_slice(&self.free_space_offset.to_le_bytes());
+
+        buffer[14..16].copy_from_slice(&self.num_of_tuples.to_le_bytes());
+
+        buffer[16..18].copy_from_slice(&self.slot_table_offset.to_le_bytes());
+    }
+
+    pub fn deserialize(buffer: &[u8; PAGE_SIZE as usize]) -> PageHeader {
+        let page_id = u32::from_le_bytes(buffer[0..4].try_into().unwrap());
+        let lsn = u64::from_le_bytes(buffer[4..12].try_into().unwrap());
+        let free_space_offset = u16::from_le_bytes(buffer[12..14].try_into().unwrap());
+        let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
+        let slot_table_offset = u16::from_le_bytes(buffer[16..18].try_into().unwrap());
+
+        PageHeader::new(
+            page_id,
+            lsn,
+            free_space_offset,
+            num_of_tuples,
+            slot_table_offset,
+        )
+    }
+
     /// Getter & setter methods
     ///
 
@@ -76,5 +106,10 @@ impl PageHeader {
 
     pub fn set_slot_table_offset(&mut self, slot_table_offset: u16) {
         self.slot_table_offset = slot_table_offset;
+    }
+
+    pub fn inc_num_of_tuples(&mut self, num_of_tuples: u16) -> u16 {
+        self.num_of_tuples += num_of_tuples;
+        self.num_of_tuples
     }
 }
