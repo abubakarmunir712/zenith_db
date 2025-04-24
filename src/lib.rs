@@ -11,3 +11,4 @@ pub mod storage {
 }
 pub mod utils;
 pub mod configs;
+pub mod enums;

@@ -15,18 +15,22 @@ pub fn dir_exists(path: &Path) -> bool {
     return false;
 }
 
-pub fn create_file(path: &Path) {
-    File::create(path).unwrap();
+pub fn create_file(path: &Path) -> Result<(), String> {
+    File::create(path).map_err(|e| e.to_string());
+    Ok(())
 }
 
-pub fn create_dir(path: &Path) {
-    fs::create_dir(path).unwrap()
+pub fn create_dir(path: &Path) -> Result<(), String> {
+    fs::create_dir(path).map_err(|e| e.to_string());
+    Ok(())
 }
 
-pub fn remove_file(path: &Path) {
-    fs::remove_file(path).unwrap();
+pub fn remove_file(path: &Path) -> Result<(), String> {
+    fs::remove_file(path).map_err(|e| e.to_string());
+    Ok(())
 }
 
-pub fn remove_dir(path: &Path) {
-    fs::remove_dir_all(path).unwrap();
+pub fn remove_dir(path: &Path) -> Result<(), String> {
+    fs::remove_dir_all(path).map_err(|e| e.to_string());
+    Ok(())
 }
