@@ -133,10 +133,10 @@ impl PageBuffer {
         for i in 0..len {
             if let Some(key) = lru_list.pop_front() {
                 if dirty_pages.contains(&key) {
-                    self.flush_page(&key.0, &key.1, key.2, &pool);
-                    pool.remove(&key);
+                    self.flush_page(&key.0, &key.1, key.2, &pool)?;
                     dirty_pages.remove(&key);
                 }
+                pool.remove(&key);
             }
         }
 
