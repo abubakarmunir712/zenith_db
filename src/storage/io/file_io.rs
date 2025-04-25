@@ -3,7 +3,7 @@ use crate::enums::page_types::PageType;
 use crate::utils::io_utils::*;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 pub struct IOEngine;
 
 impl IOEngine {
@@ -128,7 +128,6 @@ impl IOEngine {
     ) -> Result<u32, String> {
         let path = Self::_create_path(db_name, file_name, &page_type);
         let len = fs::metadata(path).map_err(|e| e.to_string())?.len();
-        println!("{len}");
         let no_of_pages = match page_type {
             PageType::CatlogPage => 1,
             _ => len / page_type.size_in_bytes(),
@@ -175,7 +174,6 @@ impl IOEngine {
             return Err(String::from("Cannot append a page to catlog table"));
         }
         let path = Self::_create_path(db_name, file_name, &page_type);
-
         let mut file = OpenOptions::new()
             .append(true)
             .open(path)
@@ -226,7 +224,7 @@ impl IOEngine {
     pub fn update_page(
         db_name: &str,
         file_name: &str,
-        buffer: &mut [u8],
+        buffer: &[u8],
         page_type: PageType,
         page_no: u32,
     ) -> Result<(), String> {
@@ -240,5 +238,15 @@ impl IOEngine {
             .map_err(|e| e.to_string())?;
         file.write_all(buffer).map_err(|e| e.to_string())?;
         Ok(())
+    }
+
+    /// Get catlog file size in bytes.
+    /// Useful for calculating catlog page buffer size.
+    pub fn catlog_file_size(db_name: &str) -> Result<u64, String> {
+        let path = PathBuf::from(DB_PATH)
+            .join(db_name)
+            .join(format!("{db_name}.bin",));
+        let len = fs::metadata(path).map_err(|e| e.to_string())?.len();
+        Ok(len)
     }
 }

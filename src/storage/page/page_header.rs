@@ -49,7 +49,7 @@ impl PageHeader {
         }
     }
 
-    pub fn serialize(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
+    pub fn serialize(&self, buffer: &mut [u8]) {
         buffer[0..4].copy_from_slice(&self.page_id.to_le_bytes());
 
         buffer[4..12].copy_from_slice(&self.lsn.to_le_bytes());
@@ -61,7 +61,7 @@ impl PageHeader {
         buffer[16..18].copy_from_slice(&self.slot_table_offset.to_le_bytes());
     }
 
-    pub fn deserialize(buffer: &[u8; PAGE_SIZE as usize]) -> PageHeader {
+    pub fn deserialize(buffer: &[u8]) -> PageHeader {
         let page_id = u32::from_le_bytes(buffer[0..4].try_into().unwrap());
         let lsn = u64::from_le_bytes(buffer[4..12].try_into().unwrap());
         let free_space_offset = u16::from_le_bytes(buffer[12..14].try_into().unwrap());

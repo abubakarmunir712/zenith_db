@@ -8,6 +8,9 @@ pub mod storage {
     pub mod io {
         pub mod file_io;
     }
+    pub mod buffer{
+        pub mod page_buffer;
+    }
 }
 pub mod utils;
 pub mod configs;

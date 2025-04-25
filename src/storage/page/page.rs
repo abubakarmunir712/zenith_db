@@ -65,7 +65,7 @@ impl Page {
 
     /// Serializes the Page into a 4KB byte array for storage on disk.
     /// This includes packing the page header, slot table, and data into a single buffer.
-    pub fn serialize(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
+    pub fn serialize(&self, buffer: &mut [u8]) {
         self.page_header.serialize(buffer);
         self._serialize_data(buffer);
         self._serialize_slot_table(buffer);
@@ -73,7 +73,7 @@ impl Page {
 
     /// Deserializes a 4KB buffer into a Page instance.
     /// Extracts the page header, slot table, and data from raw bytes.
-    pub fn deserialize(buffer: &[u8; PAGE_SIZE as usize]) -> Self {
+    pub fn deserialize(buffer: &[u8]) -> Self {
         Page {
             is_dirty: false,
             page_header: PageHeader::deserialize(buffer),
@@ -83,7 +83,7 @@ impl Page {
         }
     }
 
-    fn _serialize_data(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
+    fn _serialize_data(&self, buffer: &mut [u8]) {
         if self.page_header.num_of_tuples() == 0 || self.data.len() == 0 {
             return;
         }
@@ -92,7 +92,7 @@ impl Page {
         buffer[data_start..data_end].copy_from_slice(&self.data);
     }
 
-    fn _serialize_slot_table(&self, buffer: &mut [u8; PAGE_SIZE as usize]) {
+    fn _serialize_slot_table(&self, buffer: &mut [u8]) {
         let mut offset: usize = self.page_header.slot_table_offset() as usize;
         for slot in self.slot_table.iter().rev() {
             slot.serialize(&mut buffer[offset..offset + 8]);
@@ -100,7 +100,7 @@ impl Page {
         }
     }
 
-    fn _deserialize_data(buffer: &[u8; PAGE_SIZE as usize]) -> Vec<u8> {
+    fn _deserialize_data(buffer: &[u8]) -> Vec<u8> {
         let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
         if num_of_tuples == 0 {
             let mut data: Vec<u8> = Vec::with_capacity(4076);
@@ -114,7 +114,7 @@ impl Page {
         data
     }
 
-    fn _deserialize_slot_table(buffer: &[u8; PAGE_SIZE as usize]) -> Vec<Slot> {
+    fn _deserialize_slot_table(buffer: &[u8]) -> Vec<Slot> {
         let mut slot_table: Vec<Slot> = Vec::new();
         let num_of_tuples = u16::from_le_bytes(buffer[14..16].try_into().unwrap());
         let mut offset = PAGE_SIZE as usize;

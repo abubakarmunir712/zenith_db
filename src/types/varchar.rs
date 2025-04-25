@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize)]
 #[derive(Debug)]
 pub struct VARCHAR {
-    pub size: u32, // Maximum size of the VARCHAR field
+    pub size: u32,     // Maximum size of the VARCHAR field
     pub value: String, // The actual value of the VARCHAR field
 }
 
@@ -16,7 +16,10 @@ impl VARCHAR {
     /// The string length must not exceed `size`, `MAX_CHAR_SIZE`, or be less than `MIN_CHAR_SIZE`.
     pub fn new(size: u32, value: &str) -> Result<Self, CharError> {
         let length: u32 = value.len() as u32;
-        if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE || length > size {
+        if length > size {
+            return Err(CharError::LengthOverflow);
+        }
+        if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE {
             return Err(CharError::SysLengthLimitExceeded);
         }
         Ok(VARCHAR {
