@@ -128,10 +128,7 @@ impl IOEngine {
     ) -> Result<u32, String> {
         let path = Self::_create_path(db_name, file_name, &page_type);
         let len = fs::metadata(path).map_err(|e| e.to_string())?.len();
-        let no_of_pages = match page_type {
-            PageType::CatlogPage => 1,
-            _ => len / page_type.size_in_bytes(),
-        };
+        let no_of_pages = len / page_type.size_in_bytes();
         Ok(no_of_pages as u32)
     }
 
@@ -161,26 +158,22 @@ impl IOEngine {
     ///
     /// # Returns
     /// - `Ok(())` if successful, or error message if fail.
-    ///
-    /// # Errors
-    /// - Rejects appending to `CatlogPage`.
     pub fn append_page(
         db_name: &str,
         file_name: &str,
         page_buffer: &[u8],
         page_type: PageType,
-    ) -> Result<(), String> {
-        if let PageType::CatlogPage = page_type {
-            return Err(String::from("Cannot append a page to catlog table"));
-        }
+    ) -> Result<u64, String> {
         let path = Self::_create_path(db_name, file_name, &page_type);
         let mut file = OpenOptions::new()
             .append(true)
-            .open(path)
+            .open(&path)
             .map_err(|e| e.to_string())?;
         file.write_all(&page_buffer).map_err(|e| e.to_string())?;
         file.flush().map_err(|e| e.to_string())?;
-        Ok(())
+        let len = fs::metadata(path).map_err(|e| e.to_string())?.len();
+        let no_of_pages = len / page_type.size_in_bytes();
+        Ok(no_of_pages-1)
     }
 
     /// Reads a page from a file into the provided buffer.
@@ -238,15 +231,5 @@ impl IOEngine {
             .map_err(|e| e.to_string())?;
         file.write_all(buffer).map_err(|e| e.to_string())?;
         Ok(())
-    }
-
-    /// Get catlog file size in bytes.
-    /// Useful for calculating catlog page buffer size.
-    pub fn catlog_file_size(db_name: &str) -> Result<u64, String> {
-        let path = PathBuf::from(DB_PATH)
-            .join(db_name)
-            .join(format!("{db_name}.bin",));
-        let len = fs::metadata(path).map_err(|e| e.to_string())?.len();
-        Ok(len)
     }
 }

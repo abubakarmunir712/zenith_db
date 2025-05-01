@@ -1,5 +1,5 @@
-use crate::configs::config::Config::{FSM_PAGE_SIZE, INDEX_PAGE_SIZE, PAGE_SIZE};
-
+use crate::configs::config::Config::{CATLOG_PAGE_SIZE, FSM_PAGE_SIZE, INDEX_PAGE_SIZE, PAGE_SIZE};
+use crate::storage::page::page::Page;
 pub enum PageType {
     DataPage,
     FsmPage,
@@ -13,7 +13,7 @@ impl PageType {
             PageType::DataPage => PAGE_SIZE as u64,
             PageType::IndexPage => INDEX_PAGE_SIZE as u64,
             PageType::FsmPage => FSM_PAGE_SIZE as u64,
-            PageType::CatlogPage => 0,
+            PageType::CatlogPage => CATLOG_PAGE_SIZE as u64,
         };
         size
     }

@@ -14,5 +14,7 @@ pub mod Config {
     pub const PAGE_HEADER_SIZE: u16 = 20; // Size of page header in bytes
     pub const INDEX_PAGE_SIZE: u16 = 4096; // Size of page header in bytes
     pub const FSM_PAGE_SIZE: u16 = 4096; // Size of page header in bytes
-    pub const PAGE_BUF_CAP: u16 = 1000; // Size of page buffer
+    pub const CATLOG_PAGE_SIZE: u16 = 32768; // Size of page header in bytes
+    pub const PAGE_BUF_CAP: u16 = 16384; // Size of page buffer (Initial size will be 64MB)
+    
 }
