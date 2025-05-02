@@ -1,8 +1,7 @@
 use crate::enums::type_errors::DateTimeError;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 
 pub struct TIME {
     hours: u8,
@@ -24,9 +23,15 @@ impl TIME {
             return Err(DateTimeError::InvalidFormat.message());
         }
 
-        let hours: u8 = hours.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
-        let minutes: u8 = minutes.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
-        let seconds: u8 = seconds.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
+        let hours: u8 = hours
+            .parse()
+            .map_err(|_| DateTimeError::InvalidFormat.message())?;
+        let minutes: u8 = minutes
+            .parse()
+            .map_err(|_| DateTimeError::InvalidFormat.message())?;
+        let seconds: u8 = seconds
+            .parse()
+            .map_err(|_| DateTimeError::InvalidFormat.message())?;
 
         if !Self::is_time_valid(hours, minutes, seconds) {
             return Err(DateTimeError::InvalidValue.message());
@@ -69,6 +74,21 @@ impl TIME {
     }
 
     pub fn value(&self) -> String {
-        self.hours.to_string() + ":" + &self.minutes.to_string() + ":" + &self.seconds.to_string()
+        let hours = if self.hours < 10 {
+            format!("0{}", self.hours.to_string())
+        } else {
+            self.hours.to_string()
+        };
+        let minutes = if self.minutes < 10 {
+            format!("0{}", self.minutes.to_string())
+        } else {
+            self.minutes.to_string()
+        };
+        let seconds = if self.seconds < 10 {
+            format!("0{}", self.seconds.to_string())
+        } else {
+            self.seconds.to_string()
+        };
+        hours + ":" + &minutes+ ":" + &seconds
     }
 }

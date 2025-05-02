@@ -29,4 +29,8 @@ impl FLOAT {
             value: f32::from_le_bytes(bytes),
         }
     }
+
+    pub fn value(&self) -> f32 {
+        self.value
+    }
 }

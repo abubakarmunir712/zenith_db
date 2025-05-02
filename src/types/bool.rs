@@ -14,7 +14,7 @@ impl BOOL {
         if value.to_lowercase() == "false" {
             Ok(Self { value: false })
         } else if value.to_lowercase() == "true" {
-            Ok(Self { value: false })
+            Ok(Self { value: true })
         } else {
             Err(TypeError::MismatchedDataType.message(value, "BOOL"))
         }
@@ -23,7 +23,7 @@ impl BOOL {
     // Converts the BOOL value to a single byte (1 for true, 0 for false).
     pub fn to_bytes(&self) -> Vec<u8> {
         if self.value {
-            return vec![0]; // Return an vec containing 1 if true.
+            return vec![1]; // Return an vec containing 1 if true.
         }
         return vec![0]; // Return an vec containing 0 if false.
     }

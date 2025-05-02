@@ -1,9 +1,8 @@
 use crate::configs::types_config::TypesConfig::{MAX_CHAR_SIZE, MIN_CHAR_SIZE};
 use crate::enums::type_errors::CharError;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CHAR {
     size: u32, // Size of the CHAR field (can be used for both CHAR and VARCHAR depending on the padding)
     value: String, // The actual value of the CHAR field
@@ -58,9 +57,13 @@ impl CHAR {
             return Err(CharError::InvalidBinary.message());
         }
 
+        if bytes_length - 4 != size as usize {
+            return Err(CharError::InvalidBinary.message());
+        }
+
         // Extract the length (first 4 bytes)
         let length = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as usize;
-        println!("{}", bytes_length);
+        println!("{},{}", length, size);
         if length > size as usize {
             return Err(CharError::LengthOverflow.message());
         }
@@ -71,8 +74,8 @@ impl CHAR {
         }
 
         // Extract the actual value from the bytes
-        let value =
-            String::from_utf8(bytes[4..4 + length].to_vec()).map_err(|_| CharError::InvalidUtf8.message())?;
+        let value = String::from_utf8(bytes[4..4 + length].to_vec())
+            .map_err(|_| CharError::InvalidUtf8.message())?;
 
         Ok(CHAR { size, value })
     }

@@ -28,4 +28,8 @@ impl SMALLINT {
             value: i16::from_le_bytes(bytes),
         }
     }
+
+    pub fn value(&self)->i16{
+        self.value
+    }
 }

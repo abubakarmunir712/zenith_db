@@ -29,4 +29,8 @@ impl DOUBLE {
             value: f64::from_le_bytes(bytes),
         }
     }
+
+    pub fn value(&self)->f64{
+        self.value
+    }
 }

@@ -97,7 +97,21 @@ impl DATE {
     }
 
     pub fn value(&self) -> String {
-        (self.year.to_string()) + "-" + &(self.month.to_string()) + "-" + &(self.day.to_string())
+        let month: String = if self.month<10{
+            format!("0{}",self.month.to_string())
+        }
+        else{
+            self.month.to_string()
+        };
+
+        let day: String = if self.day<10{
+            format!("0{}",self.day.to_string())
+        }
+        else{
+            self.day.to_string()
+        };
+        
+        self.year.to_string() + "-" + &month + "-" + &day
     }
 
     pub fn month(&self) -> u8 {

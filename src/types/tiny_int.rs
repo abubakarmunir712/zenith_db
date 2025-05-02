@@ -29,4 +29,8 @@ impl TINYINT {
             value: i8::from_le_bytes(bytes),
         }
     }
+
+    pub fn value(&self)->i8{
+        self.value
+    }
 }

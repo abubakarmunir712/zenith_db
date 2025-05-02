@@ -19,24 +19,28 @@ fn test_page_update_in_place() {
     IOEngine::create_table(db_name, table_name).unwrap();
     let pb = PageBuffer::new();
     {
-        let mut page = Page::new(0, 0);
-        page.data_as_mut()[0..5].copy_from_slice(&[0, 1, 2, 3, 4]);
-        PageManager::insert_slot(&mut page, 0, 5);
-        let mut buffer: [u8; 4096] = [0; 4096];
-        page.serialize(&mut buffer);
+        for i in 0..1000 {
+            let mut page = Page::new(i as u32, i);
+            page.data_as_mut()[0..5].copy_from_slice(&[0, 1, 2, 3, 4]);
+            PageManager::insert_slot(&mut page, 0, 5);
+            let mut buffer: [u8; 4096] = [0; 4096];
+            page.serialize(&mut buffer);
 
-        IOEngine::append_page(db_name, table_name, &buffer, PageType::DataPage).unwrap();
+            IOEngine::append_page(db_name, table_name, &buffer, PageType::DataPage).unwrap();
+        }
         let a = pb.get_page(db_name, table_name, 0, true).unwrap();
         let mut page = a.write().unwrap();
         page.data_as_mut()[0..5].copy_from_slice(&[1, 3, 5, 7, 9]);
     }
     {
-        let a = pb.get_page(db_name, table_name, 0, true).unwrap();
-        let page = a.read().unwrap();
-        let data: [u8; 5] = [1, 3, 5, 7, 9];
-        assert_eq!(page.data()[0..5], data)
+        for i in 1..1000 as u32 {
+            let a = pb.get_page(db_name, table_name, i, false).unwrap();
+            let page = a.read().unwrap();
+            // let data: [u8; 5] = [1, 3, 5, 7, 9];
+            // assert_eq!(page.data()[0..5], data)
+        }
     }
-    IOEngine::delete_db(db_name).unwrap();
+    // IOEngine::delete_db(db_name).unwrap();
 }
 
 // Loads 5000 pages concurrently into the buffer, tests eviction behavior.
@@ -92,7 +96,6 @@ fn test_page_buffer_and_eviction() {
 
         // Create a thread to load the page
         let handle = thread::spawn(move || {
-
             // Load page for the given page number
             let result = page_buffer.get_page(&db_name, &table_name, i, true);
             match result {

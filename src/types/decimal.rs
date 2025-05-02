@@ -73,8 +73,8 @@ impl DECIMAL {
         }
     }
 
-    pub fn to_bytes(&self) -> [u8; 16] {
-        self.value.to_le_bytes()
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.value.to_le_bytes().to_vec()
     }
 
     /// Converts an 8-byte little-endian representation back to a DOUBLE value.
