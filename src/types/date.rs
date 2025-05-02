@@ -1,9 +1,8 @@
 use crate::enums::type_errors::DateTimeError;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DATE {
     year: u16,
     day: u8,
@@ -11,25 +10,25 @@ pub struct DATE {
 }
 
 impl DATE {
-    pub fn new(date: &str) -> Result<Self, DateTimeError> {
+    pub fn new(date: &str) -> Result<Self, &str> {
         let parts: Vec<&str> = date.split("-").collect();
         if parts.len() != 3 {
-            return Err(DateTimeError::InvalidFormat);
+            return Err(DateTimeError::InvalidFormat.message());
         }
         let year = parts[0];
         let month = parts[1];
         let date = parts[2];
 
         if year.len() > 4 || month.len() > 2 || date.len() > 2 {
-            return Err(DateTimeError::InvalidFormat);
+            return Err(DateTimeError::InvalidFormat.message());
         }
 
-        let year: u16 = year.parse().map_err(|_| DateTimeError::InvalidFormat)?;
-        let month: u8 = month.parse().map_err(|_| DateTimeError::InvalidFormat)?;
-        let day: u8 = date.parse().map_err(|_| DateTimeError::InvalidFormat)?;
+        let year: u16 = year.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
+        let month: u8 = month.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
+        let day: u8 = date.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
 
         if !(Self::is_date_valid(year, month, day)) {
-            return Err(DateTimeError::InvalidValue);
+            return Err(DateTimeError::InvalidValue.message());
         }
 
         Ok(Self { year, day, month })
@@ -74,23 +73,22 @@ impl DATE {
         is_valid
     }
 
-    pub fn to_bytes(&self) -> [u8; 4] {
-        let mut result: [u8; 4] = [0; 4];
-    
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut result: Vec<u8> = vec![0; 4];
+
         // Store the year (first 2 bytes)
         result[0..2].copy_from_slice(&self.year.to_le_bytes());
-    
+
         // Store the month (3rd byte)
         result[2] = self.month;
-    
+
         // Store the day (4th byte)
         result[3] = self.day;
-    
+
         result
     }
-    
 
-    pub fn from_bytes(bytes: &[u8; 4]) -> Self {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
         let year = u16::from_le_bytes([bytes[0], bytes[1]]);
         let month = bytes[2];
         let day = bytes[3];

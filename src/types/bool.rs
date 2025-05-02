@@ -1,28 +1,35 @@
 // Define a struct `BOOL` to represent a boolean value.
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+use crate::enums::type_errors::TypeError;
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct BOOL {
     value: bool, // Holds the actual boolean value.
 }
 
 impl BOOL {
     // Constructor: Creates a new BOOL instance with the given value.
-    pub fn new(value: bool) -> Self {
-        Self { value }
+    pub fn new(value: &str) -> Result<Self, String> {
+        if value.to_lowercase() == "false" {
+            Ok(Self { value: false })
+        } else if value.to_lowercase() == "true" {
+            Ok(Self { value: false })
+        } else {
+            Err(TypeError::MismatchedDataType.message(value, "BOOL"))
+        }
     }
 
     // Converts the BOOL value to a single byte (1 for true, 0 for false).
-    pub fn to_bytes(&self) -> [u8; 1] {
+    pub fn to_bytes(&self) -> Vec<u8> {
         if self.value {
-            return [1]; // Return an array containing 1 if true.
+            return vec![0]; // Return an vec containing 1 if true.
         }
-        return [0]; // Return an array containing 0 if false.
+        return vec![0]; // Return an vec containing 0 if false.
     }
 
     // Converts a byte array back into a BOOL instance.
-    pub fn from_bytes(bytes: &[u8; 1]) -> Self {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
         if bytes[0] == 0 {
             return Self { value: false }; // If byte is 0, set value to false.
         }

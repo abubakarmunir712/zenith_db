@@ -11,25 +11,25 @@ pub struct TIME {
 }
 
 impl TIME {
-    pub fn new(time: &str) -> Result<Self, DateTimeError> {
+    pub fn new(time: &str) -> Result<Self, &str> {
         let parts: Vec<&str> = time.split(":").collect();
         if parts.len() != 3 {
-            return Err(DateTimeError::InvalidFormat);
+            return Err(DateTimeError::InvalidFormat.message());
         }
         let hours = parts[0];
         let minutes = parts[1];
         let seconds = parts[2];
 
         if hours.len() > 2 || minutes.len() > 2 || seconds.len() > 2 {
-            return Err(DateTimeError::InvalidFormat);
+            return Err(DateTimeError::InvalidFormat.message());
         }
 
-        let hours: u8 = hours.parse().map_err(|_| DateTimeError::InvalidFormat)?;
-        let minutes: u8 = minutes.parse().map_err(|_| DateTimeError::InvalidFormat)?;
-        let seconds: u8 = seconds.parse().map_err(|_| DateTimeError::InvalidFormat)?;
+        let hours: u8 = hours.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
+        let minutes: u8 = minutes.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
+        let seconds: u8 = seconds.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
 
         if !Self::is_time_valid(hours, minutes, seconds) {
-            return Err(DateTimeError::InvalidValue);
+            return Err(DateTimeError::InvalidValue.message());
         }
 
         return Ok(Self {
@@ -46,11 +46,11 @@ impl TIME {
         return true;
     }
 
-    pub fn to_bytes(&self) -> [u8; 3] {
-        [self.hours, self.minutes, self.seconds]
+    pub fn to_bytes(&self) -> Vec<u8> {
+        vec![self.hours, self.minutes, self.seconds]
     }
 
-    pub fn from_bytes(bytes: &[u8; 3]) -> Self {
+    pub fn from_bytes(bytes: &[u8]) -> Self {
         TIME {
             hours: bytes[0],
             minutes: bytes[1],

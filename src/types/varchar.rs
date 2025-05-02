@@ -1,9 +1,8 @@
 use crate::configs::types_config::TypesConfig::{MAX_CHAR_SIZE, MIN_CHAR_SIZE};
 use crate::enums::type_errors::CharError;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct VARCHAR {
     pub size: u32,     // Maximum size of the VARCHAR field
     pub value: String, // The actual value of the VARCHAR field
@@ -14,13 +13,13 @@ impl VARCHAR {
     ///
     /// Creates a `VARCHAR` field with a maximum size and a string value.
     /// The string length must not exceed `size`, `MAX_CHAR_SIZE`, or be less than `MIN_CHAR_SIZE`.
-    pub fn new(size: u32, value: &str) -> Result<Self, CharError> {
+    pub fn new(size: u32, value: &str) -> Result<Self, &str> {
         let length: u32 = value.len() as u32;
         if length > size {
-            return Err(CharError::LengthOverflow);
+            return Err(CharError::LengthOverflow.message());
         }
         if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE {
-            return Err(CharError::SysLengthLimitExceeded);
+            return Err(CharError::SysLengthLimitExceeded.message());
         }
         Ok(VARCHAR {
             size,
@@ -42,16 +41,16 @@ impl VARCHAR {
     /// Deserializes UTF-8 bytes into a `VARCHAR` with the given maximum `size`.
     /// Expects raw string bytes without a length prefix. Validates that the byte length
     /// does not exceed `size` or `MAX_CHAR_SIZE`, and is at least `MIN_CHAR_SIZE`.
-    pub fn from_bytes(bytes: Vec<u8>, size: u32) -> Result<Self, CharError> {
+    pub fn from_bytes(bytes: &[u8], size: u32) -> Result<Self, &str> {
         let bytes_length: u32 = bytes.len() as u32;
 
         // Validate byte length against size constraints
         if bytes_length > MAX_CHAR_SIZE || bytes_length < MIN_CHAR_SIZE || bytes_length > size {
-            return Err(CharError::SysLengthLimitExceeded);
+            return Err(CharError::SysLengthLimitExceeded.message());
         }
 
         // Convert bytes to a UTF-8 string
-        let value = String::from_utf8(bytes).map_err(|_| CharError::InvalidUtf8)?;
+        let value = String::from_utf8(bytes.to_vec()).map_err(|_| CharError::InvalidUtf8.message())?;
 
         Ok(VARCHAR { size, value })
     }

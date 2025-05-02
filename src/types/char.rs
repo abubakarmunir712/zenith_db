@@ -15,10 +15,10 @@ impl CHAR {
     /// This can be used for both `CHAR` and `VARCHAR` types by adjusting the padding.
     /// For `CHAR`, padding will be added to ensure the field is exactly `size` bytes long.
     /// For `VARCHAR`, no padding is applied, and the string length will be respected.
-    pub fn new(size: u32, value: &str) -> Result<Self, CharError> {
+    pub fn new(size: u32, value: &str) -> Result<Self, &str> {
         let length: u32 = value.len() as u32;
         if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE || length > size {
-            return Err(CharError::SysLengthLimitExceeded);
+            return Err(CharError::SysLengthLimitExceeded.message());
         }
         Ok(CHAR {
             size,
@@ -51,28 +51,28 @@ impl CHAR {
     }
 
     /// Convert a Vec<u8> back into a CHAR struct
-    pub fn from_bytes(bytes: Vec<u8>, size: u32) -> Result<Self, CharError> {
+    pub fn from_bytes(bytes: &[u8], size: u32) -> Result<Self, &str> {
         let bytes_length: usize = bytes.len();
         // There must be at least 5 bytes (4 for size and 1 for value)
         if bytes_length < 5 || bytes_length > MAX_CHAR_SIZE as usize + 4 {
-            return Err(CharError::InvalidBinary);
+            return Err(CharError::InvalidBinary.message());
         }
 
         // Extract the length (first 4 bytes)
         let length = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as usize;
         println!("{}", bytes_length);
         if length > size as usize {
-            return Err(CharError::LengthOverflow);
+            return Err(CharError::LengthOverflow.message());
         }
 
         // Ensure the length matches the rest of the bytes in the Vec
         if bytes_length - 4 < length {
-            return Err(CharError::LengthOverflow);
+            return Err(CharError::LengthOverflow.message());
         }
 
         // Extract the actual value from the bytes
         let value =
-            String::from_utf8(bytes[4..4 + length].to_vec()).map_err(|_| CharError::InvalidUtf8)?;
+            String::from_utf8(bytes[4..4 + length].to_vec()).map_err(|_| CharError::InvalidUtf8.message())?;
 
         Ok(CHAR { size, value })
     }

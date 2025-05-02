@@ -10,10 +10,10 @@ pub struct TEXT {
 
 impl TEXT {
     /// Constructor to create a new TEXT with validation
-    pub fn new(value: &str) -> Result<Self, CharError> {
+    pub fn new(value: &str) -> Result<Self, &str> {
         let length: u32 = value.len() as u32;
         if length > MAX_TEXT_SIZE || length < MIN_TEXT_SIZE {
-            return Err(CharError::SysLengthLimitExceeded);
+            return Err(CharError::SysLengthLimitExceeded.message());
         }
         Ok(TEXT {
             value: value.to_string(),
@@ -34,11 +34,11 @@ impl TEXT {
     }
 
     /// Convert a Vec<u8> back into a TEXT struct
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, CharError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &str> {
         let bytes_length = bytes.len();
         // There must be at least 5 bytes (4 for size + 1 for content)
         if bytes_length < 5 || bytes_length > MAX_TEXT_SIZE as usize + 4 {
-            return Err(CharError::InvalidBinary);
+            return Err(CharError::InvalidBinary.message());
         }
 
         // Extract the length (first 4 bytes)
@@ -46,12 +46,12 @@ impl TEXT {
 
         // Ensure the length matches the actual available bytes
         if bytes.len() - 4 != length {
-            return Err(CharError::LengthOverflow);
+            return Err(CharError::LengthOverflow.message());
         }
 
         // Extract the actual value from the bytes
         let value =
-            String::from_utf8(bytes[4..4 + length].to_vec()).map_err(|_| CharError::InvalidUtf8)?;
+            String::from_utf8(bytes[4..4 + length].to_vec()).map_err(|_| CharError::InvalidUtf8.message())?;
 
         Ok(TEXT { value })
     }

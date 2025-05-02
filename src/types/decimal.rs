@@ -1,9 +1,8 @@
 use crate::configs::types_config::TypesConfig::{MAX_DECIMAL_PRECISION, MIN_DECIMAL_PRECISION};
 use crate::enums::type_errors::DecimalError;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DECIMAL {
     value: i128,
     scale: u32,
@@ -11,7 +10,7 @@ pub struct DECIMAL {
 }
 
 impl DECIMAL {
-    pub fn new(value: &str, precision: u32, scale: u32) -> Result<Self, DecimalError> {
+    pub fn new(value: &str, precision: u32, scale: u32) -> Result<Self, &str> {
         let is_signed: u32 = if value.starts_with('-') || value.starts_with('+') {
             1
         } else {
@@ -19,21 +18,21 @@ impl DECIMAL {
         };
 
         if scale > precision {
-            return Err(DecimalError::InvalidScale);
+            return Err(DecimalError::InvalidScale.message());
         }
         // Max allowed precision is 38, because i128 can only hold upto 38 digits!
         if precision < MIN_DECIMAL_PRECISION || precision > MAX_DECIMAL_PRECISION {
-            return Err(DecimalError::SysPrecisionLimitExceeded);
+            return Err(DecimalError::SysPrecisionLimitExceeded.message());
         }
 
         let parts: Vec<&str> = value.split(".").collect();
 
         if parts[0].len() as u32 > (precision - scale + is_signed) {
-            return Err(DecimalError::PrecisionOverflow);
+            return Err(DecimalError::PrecisionOverflow.message());
         }
 
         if parts.len() > 2 {
-            return Err(DecimalError::InvalidFormat);
+            return Err(DecimalError::InvalidFormat.message());
         }
 
         let mut dec_part_len: u32 = if parts.len() > 1 {
@@ -43,7 +42,7 @@ impl DECIMAL {
         };
 
         if parts[0].len() as u32 + dec_part_len - is_signed > MAX_DECIMAL_PRECISION {
-            return Err(DecimalError::PrecisionOverflow);
+            return Err(DecimalError::PrecisionOverflow.message());
         }
 
         let mut value = parts.join("");
@@ -53,7 +52,7 @@ impl DECIMAL {
             dec_part_len += 1;
         }
 
-        let mut value: i128 = value.parse().map_err(|_| DecimalError::InvalidFormat)?;
+        let mut value: i128 = value.parse().map_err(|_| DecimalError::InvalidFormat.message())?;
         Self::handle_rounding(&mut value, scale, dec_part_len);
         Ok(DECIMAL {
             value,
@@ -79,9 +78,10 @@ impl DECIMAL {
     }
 
     /// Converts an 8-byte little-endian representation back to a DOUBLE value.
-    pub fn from_bytes(bytes: &[u8; 16], precision: u32, scale: u32) -> Self {
+    pub fn from_bytes(bytes: &[u8], precision: u32, scale: u32) -> Self {
+        let bytes: [u8; 16] = bytes.try_into().unwrap();
         DECIMAL {
-            value: i128::from_le_bytes(*bytes),
+            value: i128::from_le_bytes(bytes),
             precision,
             scale,
         }
