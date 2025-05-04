@@ -40,7 +40,7 @@ fn test_page_update_in_place() {
             // assert_eq!(page.data()[0..5], data)
         }
     }
-    // IOEngine::delete_db(db_name).unwrap();
+    IOEngine::delete_db(db_name).unwrap();
 }
 
 // Loads 5000 pages concurrently into the buffer, tests eviction behavior.
