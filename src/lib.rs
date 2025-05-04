@@ -17,3 +17,4 @@ pub mod utils;
 pub mod configs;
 pub mod enums;
 pub mod types;
+pub mod oid;
