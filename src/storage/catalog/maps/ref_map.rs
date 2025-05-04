@@ -4,7 +4,5 @@ use std::collections::HashMap;
 
 pub struct RefMap {
     no_of_ref: u16,
-    column_oid_bitmap: [u8; MAX_REF_SIZE / 8],
-    map: HashMap<String, RefEntry>,
-    next_ref_map: u32,
+    map: Vec<RefEntry>,
 }

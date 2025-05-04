@@ -18,9 +18,6 @@ impl VARCHAR {
         if length > size {
             return Err(StringError::LengthExceeded.message());
         }
-        if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE {
-            return Err(StringError::SysLengthExceeded.message());
-        }
         Ok(VARCHAR {
             size,
             value: value.to_string(),

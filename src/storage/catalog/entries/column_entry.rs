@@ -9,4 +9,5 @@ pub struct ColumnEntry {
     pub unique: bool,
     pub is_primary_key: bool,
     pub is_foreign_key:bool,
+    pub is_referenced:bool,
 }

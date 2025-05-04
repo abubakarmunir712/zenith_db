@@ -29,7 +29,11 @@ impl IOEngine {
 
         // Create the catalog file
         let clog_path = base.join(format!("{db_name}.bin"));
+
+        // Create the reference table file
+        let ref_path = base.join(format!("{db_name}_ref.bin"));
         create_file(&clog_path)?;
+        create_file(&ref_path)?;
         Ok(())
     }
 
@@ -108,6 +112,7 @@ impl IOEngine {
             PageType::IndexPage => base.join("indexes").join(file_name),
             PageType::FsmPage => base.join("fst").join(file_name),
             PageType::CatlogPage => base.join(format!("{db_name}.bin")),
+            PageType::RefPage => base.join(format!("{db_name}_ref.bin")),
         };
         path
     }
@@ -141,10 +146,7 @@ impl IOEngine {
     /// # Returns
     /// - `u64` offset in bytes from the beginning of the file.
     pub fn calculate_offsets_to_read(page_type: &PageType, page_no: u32) -> u64 {
-        let mut start_offset: u64 = page_type.size_in_bytes() * page_no as u64;
-        if let PageType::CatlogPage = page_type {
-            start_offset = 0;
-        }
+        let start_offset: u64 = page_type.size_in_bytes() * page_no as u64;
         start_offset
     }
 
@@ -173,7 +175,7 @@ impl IOEngine {
         file.flush().map_err(|e| e.to_string())?;
         let len = fs::metadata(path).map_err(|e| e.to_string())?.len();
         let no_of_pages = len / page_type.size_in_bytes();
-        Ok(no_of_pages-1)
+        Ok(no_of_pages - 1)
     }
 
     /// Reads a page from a file into the provided buffer.

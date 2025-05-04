@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CHAR {
-    size: u32, // Size of the CHAR field (can be used for both CHAR and VARCHAR depending on the padding)
+    size: u32, // Size of the CHAR field
     value: String, // The actual value of the CHAR field
 }
 
@@ -16,9 +16,6 @@ impl CHAR {
         let length: u32 = value.len() as u32;
         if length > size {
             return Err(StringError::LengthExceeded.message());
-        }
-        if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE {
-            return Err(StringError::SysLengthExceeded.message());
         }
         Ok(CHAR {
             size,

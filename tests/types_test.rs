@@ -467,12 +467,6 @@ fn test_varchar_value_exceeds_size() {
     assert!(result.is_err());
 }
 
-#[test]
-fn test_varchar_value_below_min_size() {
-    let result = VARCHAR::new(5, "");
-    assert!(result.is_err());
-}
-
 // ------ TEXT Tests ------
 
 #[test]
@@ -498,11 +492,6 @@ fn test_text_value_below_min_size() {
 
 // ------ Edge case tests ------
 
-#[test]
-fn test_char_empty_value() {
-    let char_field = CHAR::new(10, "");
-    assert!(char_field.is_err());
-}
 
 #[test]
 fn test_varchar_empty_value() {
@@ -545,8 +534,8 @@ fn create_column_entry(
         unique,
         is_primary_key,
         is_foreign_key,
+        is_referenced: false,
     }
-    
 }
 
 // Test serialization and deserialization for each TypedValue variant
@@ -732,7 +721,6 @@ fn test_typed_value_text() {
         _ => panic!("Expected TEXT variant"),
     }
 }
-
 
 // Edge case: TEXT at max size
 #[test]

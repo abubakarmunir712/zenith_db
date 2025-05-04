@@ -18,5 +18,6 @@ pub mod Config {
     pub const INDEX_PAGE_SIZE: u16 = 4096;
     pub const FSM_PAGE_SIZE: u16 = 4096;
     pub const CATLOG_PAGE_SIZE: u16 = 32768;
+    pub const REF_PAGE_SIZE: u16 = 32768;
     pub const PAGE_BUF_CAP: u16 = 16384;
 }
