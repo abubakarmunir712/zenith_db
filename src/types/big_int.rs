@@ -1,7 +1,7 @@
 /// Represents a BIGINT (64-bit signed integer) data type.
 use serde::{Deserialize, Serialize};
 
-use crate::enums::type_errors::TypeError;
+use crate::enums::type_errors::NumericError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BIGINT {
@@ -10,11 +10,18 @@ pub struct BIGINT {
 
 impl BIGINT {
     /// Creates a new BIGINT instance.
-    pub fn new(value: &str) -> Result<Self, String> {
-        let value: i64 = value
-            .parse()
-            .map_err(|e| TypeError::MismatchedDataType.message(value, "BIGINT"))?;
-        Ok(BIGINT { value })
+    pub fn new(value: &str) -> Result<Self, &str> {
+        let value = value.parse::<i64>();
+        match value {
+            Ok(val) => Ok(BIGINT { value: val }),
+            Err(e) => {
+                if e.to_string().contains("too large") {
+                    Err(NumericError::OutOfRange.message())
+                } else {
+                    Err(NumericError::InvalidFormat.message())
+                }
+            }
+        }
     }
 
     /// Converts the given i64 value to an 8-byte little-endian representation.

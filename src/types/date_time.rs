@@ -14,7 +14,7 @@ impl DATETIME {
     pub fn new(date_time: &str) -> Result<Self, &str> {
         let parts: Vec<&str> = date_time.split(" ").collect();
         if parts.len() != 2 {
-            return Err(DateTimeError::InvalidFormat.message());
+            return Err(DateTimeError::InvalidDateTime.message());
         }
         let date = DATE::new(parts[0])?;
         let time = TIME::new(parts[1])?;

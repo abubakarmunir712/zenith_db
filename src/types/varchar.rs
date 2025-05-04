@@ -1,5 +1,5 @@
 use crate::configs::types_config::TypesConfig::{MAX_CHAR_SIZE, MIN_CHAR_SIZE};
-use crate::enums::type_errors::CharError;
+use crate::enums::type_errors::StringError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -16,10 +16,10 @@ impl VARCHAR {
     pub fn new(size: u32, value: &str) -> Result<Self, &str> {
         let length: u32 = value.len() as u32;
         if length > size {
-            return Err(CharError::LengthOverflow.message());
+            return Err(StringError::LengthExceeded.message());
         }
         if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE {
-            return Err(CharError::SysLengthLimitExceeded.message());
+            return Err(StringError::SysLengthExceeded.message());
         }
         Ok(VARCHAR {
             size,
@@ -41,18 +41,13 @@ impl VARCHAR {
     /// Deserializes UTF-8 bytes into a `VARCHAR` with the given maximum `size`.
     /// Expects raw string bytes without a length prefix. Validates that the byte length
     /// does not exceed `size` or `MAX_CHAR_SIZE`, and is at least `MIN_CHAR_SIZE`.
-    pub fn from_bytes(bytes: &[u8], size: u32) -> Result<Self, &str> {
+    pub fn from_bytes(bytes: &[u8], size: u32) -> Self {
         let bytes_length: u32 = bytes.len() as u32;
 
-        // Validate byte length against size constraints
-        if bytes_length > MAX_CHAR_SIZE || bytes_length < MIN_CHAR_SIZE || bytes_length > size {
-            return Err(CharError::SysLengthLimitExceeded.message());
-        }
-
         // Convert bytes to a UTF-8 string
-        let value = String::from_utf8(bytes.to_vec()).map_err(|_| CharError::InvalidUtf8.message())?;
+        let value = String::from_utf8(bytes.to_vec()).unwrap();
 
-        Ok(VARCHAR { size, value })
+        VARCHAR { size, value }
     }
 
     // Getter for the value field (returns the string value)

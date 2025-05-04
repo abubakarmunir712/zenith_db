@@ -1,5 +1,7 @@
-use crate::configs::types_config::TypesConfig::{MAX_CHAR_SIZE, MIN_CHAR_SIZE};
-use crate::enums::type_errors::CharError;
+use crate::{
+    configs::types_config::TypesConfig::{MAX_CHAR_SIZE, MIN_CHAR_SIZE},
+    enums::type_errors::StringError,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -10,14 +12,13 @@ pub struct CHAR {
 
 impl CHAR {
     /// Constructor to create a new CHAR with validation
-    ///
-    /// This can be used for both `CHAR` and `VARCHAR` types by adjusting the padding.
-    /// For `CHAR`, padding will be added to ensure the field is exactly `size` bytes long.
-    /// For `VARCHAR`, no padding is applied, and the string length will be respected.
     pub fn new(size: u32, value: &str) -> Result<Self, &str> {
         let length: u32 = value.len() as u32;
-        if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE || length > size {
-            return Err(CharError::SysLengthLimitExceeded.message());
+        if length > size {
+            return Err(StringError::LengthExceeded.message());
+        }
+        if length > MAX_CHAR_SIZE || length < MIN_CHAR_SIZE {
+            return Err(StringError::SysLengthExceeded.message());
         }
         Ok(CHAR {
             size,
@@ -50,34 +51,12 @@ impl CHAR {
     }
 
     /// Convert a Vec<u8> back into a CHAR struct
-    pub fn from_bytes(bytes: &[u8], size: u32) -> Result<Self, &str> {
-        let bytes_length: usize = bytes.len();
-        // There must be at least 5 bytes (4 for size and 1 for value)
-        if bytes_length < 5 || bytes_length > MAX_CHAR_SIZE as usize + 4 {
-            return Err(CharError::InvalidBinary.message());
-        }
-
-        if bytes_length - 4 != size as usize {
-            return Err(CharError::InvalidBinary.message());
-        }
-
+    pub fn from_bytes(bytes: &[u8], size: u32) -> Self {
         // Extract the length (first 4 bytes)
         let length = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as usize;
-        println!("{},{}", length, size);
-        if length > size as usize {
-            return Err(CharError::LengthOverflow.message());
-        }
-
-        // Ensure the length matches the rest of the bytes in the Vec
-        if bytes_length - 4 < length {
-            return Err(CharError::LengthOverflow.message());
-        }
-
         // Extract the actual value from the bytes
-        let value = String::from_utf8(bytes[4..4 + length].to_vec())
-            .map_err(|_| CharError::InvalidUtf8.message())?;
-
-        Ok(CHAR { size, value })
+        let value = String::from_utf8(bytes[4..4 + length].to_vec()).unwrap();
+        CHAR { size, value }
     }
 
     // Getter for the value field (returns the string value)

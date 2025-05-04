@@ -1,9 +1,8 @@
 use crate::configs::types_config::TypesConfig::{MAX_TEXT_SIZE, MIN_TEXT_SIZE};
-use crate::enums::type_errors::CharError;
-use serde::{Serialize, Deserialize};
+use crate::enums::type_errors::StringError;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TEXT {
     value: String, // The actual text value
 }
@@ -13,7 +12,7 @@ impl TEXT {
     pub fn new(value: &str) -> Result<Self, &str> {
         let length: u32 = value.len() as u32;
         if length > MAX_TEXT_SIZE || length < MIN_TEXT_SIZE {
-            return Err(CharError::SysLengthLimitExceeded.message());
+            return Err(StringError::SysLengthExceeded.message());
         }
         Ok(TEXT {
             value: value.to_string(),
@@ -34,26 +33,14 @@ impl TEXT {
     }
 
     /// Convert a Vec<u8> back into a TEXT struct
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &str> {
-        let bytes_length = bytes.len();
-        // There must be at least 5 bytes (4 for size + 1 for content)
-        if bytes_length < 5 || bytes_length > MAX_TEXT_SIZE as usize + 4 {
-            return Err(CharError::InvalidBinary.message());
-        }
-
+    pub fn from_bytes(bytes: &[u8]) -> Self {
         // Extract the length (first 4 bytes)
         let length = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) as usize;
 
-        // Ensure the length matches the actual available bytes
-        if bytes.len() - 4 != length {
-            return Err(CharError::LengthOverflow.message());
-        }
-
         // Extract the actual value from the bytes
-        let value =
-            String::from_utf8(bytes[4..4 + length].to_vec()).map_err(|_| CharError::InvalidUtf8.message())?;
+        let value = String::from_utf8(bytes[4..4 + length].to_vec()).unwrap();
 
-        Ok(TEXT { value })
+        TEXT { value }
     }
 
     /// Getter for the value field

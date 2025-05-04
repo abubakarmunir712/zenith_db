@@ -1,7 +1,7 @@
 /// Represents a SMALLINT (16-bit signed integer) data type.
 use serde::{Deserialize, Serialize};
 
-use crate::enums::type_errors::TypeError;
+use crate::enums::type_errors::NumericError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SMALLINT {
@@ -10,11 +10,18 @@ pub struct SMALLINT {
 
 impl SMALLINT {
     /// Creates a new SMALLINT instance.
-    pub fn new(value: &str) -> Result<Self, String> {
-        let value: i16 = value
-            .parse()
-            .map_err(|e| TypeError::MismatchedDataType.message(value, "SMALLINT"))?;
-        Ok(SMALLINT { value })
+    pub fn new(value: &str) -> Result<Self, &str> {
+        let value = value.parse::<i16>();
+        match value {
+            Ok(val) => Ok(SMALLINT { value: val }),
+            Err(e) => {
+                if e.to_string().contains("too large") {
+                    Err(NumericError::OutOfRange.message())
+                } else {
+                    Err(NumericError::InvalidFormat.message())
+                }
+            }
+        }
     }
     /// Converts the given i16 value to a 2-byte little-endian representation.
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -29,7 +36,7 @@ impl SMALLINT {
         }
     }
 
-    pub fn value(&self)->i16{
+    pub fn value(&self) -> i16 {
         self.value
     }
 }

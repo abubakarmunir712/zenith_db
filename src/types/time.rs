@@ -13,28 +13,28 @@ impl TIME {
     pub fn new(time: &str) -> Result<Self, &str> {
         let parts: Vec<&str> = time.split(":").collect();
         if parts.len() != 3 {
-            return Err(DateTimeError::InvalidFormat.message());
+            return Err(DateTimeError::InvalidTimeFormat.message());
         }
         let hours = parts[0];
         let minutes = parts[1];
         let seconds = parts[2];
 
         if hours.len() > 2 || minutes.len() > 2 || seconds.len() > 2 {
-            return Err(DateTimeError::InvalidFormat.message());
+            return Err(DateTimeError::InvalidTimeFormat.message());
         }
 
         let hours: u8 = hours
             .parse()
-            .map_err(|_| DateTimeError::InvalidFormat.message())?;
+            .map_err(|_| DateTimeError::InvalidTimeFormat.message())?;
         let minutes: u8 = minutes
             .parse()
-            .map_err(|_| DateTimeError::InvalidFormat.message())?;
+            .map_err(|_| DateTimeError::InvalidTimeFormat.message())?;
         let seconds: u8 = seconds
             .parse()
-            .map_err(|_| DateTimeError::InvalidFormat.message())?;
+            .map_err(|_| DateTimeError::InvalidTimeFormat.message())?;
 
         if !Self::is_time_valid(hours, minutes, seconds) {
-            return Err(DateTimeError::InvalidValue.message());
+            return Err(DateTimeError::InvalidTimeValue.message());
         }
 
         return Ok(Self {

@@ -1,7 +1,7 @@
 // Define a struct `BOOL` to represent a boolean value.
 use serde::{Deserialize, Serialize};
 
-use crate::enums::type_errors::TypeError;
+use crate::enums::type_errors::BoolError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BOOL {
@@ -10,13 +10,13 @@ pub struct BOOL {
 
 impl BOOL {
     // Constructor: Creates a new BOOL instance with the given value.
-    pub fn new(value: &str) -> Result<Self, String> {
+    pub fn new(value: &str) -> Result<Self, &str> {
         if value.to_lowercase() == "false" {
             Ok(Self { value: false })
         } else if value.to_lowercase() == "true" {
             Ok(Self { value: true })
         } else {
-            Err(TypeError::MismatchedDataType.message(value, "BOOL"))
+            Err(BoolError::InvalidValue.message())
         }
     }
 

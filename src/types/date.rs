@@ -13,22 +13,22 @@ impl DATE {
     pub fn new(date: &str) -> Result<Self, &str> {
         let parts: Vec<&str> = date.split("-").collect();
         if parts.len() != 3 {
-            return Err(DateTimeError::InvalidFormat.message());
+            return Err(DateTimeError::InvalidDateFormat.message());
         }
         let year = parts[0];
         let month = parts[1];
         let date = parts[2];
 
         if year.len() > 4 || month.len() > 2 || date.len() > 2 {
-            return Err(DateTimeError::InvalidFormat.message());
+            return Err(DateTimeError::InvalidDateFormat.message());
         }
 
-        let year: u16 = year.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
-        let month: u8 = month.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
-        let day: u8 = date.parse().map_err(|_| DateTimeError::InvalidFormat.message())?;
+        let year: u16 = year.parse().map_err(|_| DateTimeError::InvalidDateFormat.message())?;
+        let month: u8 = month.parse().map_err(|_| DateTimeError::InvalidDateFormat.message())?;
+        let day: u8 = date.parse().map_err(|_| DateTimeError::InvalidDateFormat.message())?;
 
         if !(Self::is_date_valid(year, month, day)) {
-            return Err(DateTimeError::InvalidValue.message());
+            return Err(DateTimeError::InvalidDateValue.message());
         }
 
         Ok(Self { year, day, month })

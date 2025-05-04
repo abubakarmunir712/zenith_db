@@ -1,490 +1,766 @@
-use ZenithDB::configs::types_config::TypesConfig::{MAX_CHAR_SIZE, MAX_TEXT_SIZE};
+use ZenithDB::configs::types_config::TypesConfig::{MAX_TEXT_SIZE, MIN_TEXT_SIZE};
+use ZenithDB::enums::datatypes::DataType;
+use ZenithDB::enums::type_errors::*;
+use ZenithDB::enums::typed_value::TypedValue;
+use ZenithDB::storage::catalog::entries::column_entry::ColumnEntry;
 use ZenithDB::types::big_int::BIGINT;
 use ZenithDB::types::bool::BOOL;
 use ZenithDB::types::char::CHAR;
-use ZenithDB::types::date_time::DATETIME;
 use ZenithDB::types::date::DATE;
+use ZenithDB::types::date_time::DATETIME;
 use ZenithDB::types::decimal::DECIMAL;
 use ZenithDB::types::double::DOUBLE;
 use ZenithDB::types::float::FLOAT;
 use ZenithDB::types::int::INT;
-use ZenithDB::types::tiny_int::TINYINT;
-use ZenithDB::types::varchar::VARCHAR;
-use ZenithDB::types::time::TIME;
 use ZenithDB::types::small_int::SMALLINT;
 use ZenithDB::types::text::TEXT;
+use ZenithDB::types::time::TIME;
+use ZenithDB::types::tiny_int::TINYINT;
+use ZenithDB::types::varchar::VARCHAR;
 
-
-
-
+// -------------- For INT data type -----------------------
 
 #[test]
-fn test_bigint_basic_operations() {
-    // Create from string
-    let bigint = BIGINT::new("123456789").expect("Failed to create BIGINT");
-    assert_eq!(bigint.value(), 123456789);
+fn test_int_new_valid() {
+    let int = INT::new("123");
+    assert!(int.is_ok());
+    assert_eq!(int.unwrap().value(), 123);
+}
 
-    // Serialize to bytes
+#[test]
+fn test_int_new_invalid_format() {
+    let int = INT::new("abc");
+    assert!(int.is_err());
+    assert_eq!(int.unwrap_err(), NumericError::InvalidFormat.message());
+}
+
+#[test]
+fn test_int_new_out_of_range() {
+    let val = i64::MAX.to_string(); // exceeds i32 range
+    let int = INT::new(&val);
+    assert!(int.is_err());
+    assert_eq!(int.unwrap_err(), NumericError::OutOfRange.message());
+}
+
+#[test]
+fn test_int_to_from_bytes() {
+    let int = INT::new("456").unwrap();
+    let bytes = int.to_bytes();
+    let restored = INT::from_bytes(&bytes);
+    assert_eq!(int.value(), restored.value());
+}
+
+// -------------- For BIGINT data type -----------------------
+
+#[test]
+fn test_bigint_new_valid() {
+    let bigint = BIGINT::new("1234567890123");
+    assert!(bigint.is_ok());
+    assert_eq!(bigint.unwrap().value(), 1234567890123);
+}
+
+#[test]
+fn test_bigint_new_invalid_format() {
+    let bigint = BIGINT::new("notanumber");
+    assert!(bigint.is_err());
+    assert_eq!(bigint.unwrap_err(), NumericError::InvalidFormat.message());
+}
+
+#[test]
+fn test_bigint_new_out_of_range() {
+    let val = "9223372036854775807123"; // just beyond i64 max
+    let bigint = BIGINT::new(val);
+    assert!(bigint.is_err());
+    assert_eq!(bigint.unwrap_err(), NumericError::OutOfRange.message());
+}
+
+#[test]
+fn test_bigint_to_from_bytes() {
+    let bigint = BIGINT::new("-9999999999").unwrap();
     let bytes = bigint.to_bytes();
-    assert_eq!(bytes.len(), 8);
+    let restored = BIGINT::from_bytes(&bytes);
+    assert_eq!(bigint.value(), restored.value());
+}
 
-    // Deserialize from bytes
-    let deserialized = BIGINT::from_bytes(&bytes);
-    assert_eq!(deserialized.value(), 123456789);
+// -------------- For SMALLINT data type -----------------------
+
+#[test]
+fn test_smallint_new_valid() {
+    let smallint = SMALLINT::new("32767");
+    assert!(smallint.is_ok());
+    assert_eq!(smallint.unwrap().value(), 32767);
 }
 
 #[test]
-fn test_bigint_invalid_input() {
-    let result = BIGINT::new("not_a_number");
-    assert!(result.is_err());
+fn test_smallint_new_invalid_format() {
+    let smallint = SMALLINT::new("hello");
+    assert!(smallint.is_err());
+    assert_eq!(smallint.unwrap_err(), NumericError::InvalidFormat.message());
 }
 
+#[test]
+fn test_smallint_new_out_of_range() {
+    let val = "40000"; // exceeds i16
+    let smallint = SMALLINT::new(val);
+    assert!(smallint.is_err());
+    assert_eq!(smallint.unwrap_err(), NumericError::OutOfRange.message());
+}
 
 #[test]
-fn test_bool_true_and_false() {
-    // Test creating TRUE
-    let b_true = BOOL::new("true").expect("Should parse 'true'");
-    assert_eq!(b_true.value(), true); 
+fn test_smallint_to_from_bytes() {
+    let smallint = SMALLINT::new("-1234").unwrap();
+    let bytes = smallint.to_bytes();
+    let restored = SMALLINT::from_bytes(&bytes);
+    assert_eq!(smallint.value(), restored.value());
+}
 
-    // Test creating FALSE
-    let b_false = BOOL::new("false").expect("Should parse 'false'");
-    assert_eq!(b_false.value(), false);
+// -------------- For TINYINT data type -----------------------
 
-    // Round-trip: true
-    let true_bytes = b_true.to_bytes();
-    let b_from_true = BOOL::from_bytes(&true_bytes);
-    assert_eq!(b_from_true.value(), true);
+#[test]
+fn test_tinyint_new_valid() {
+    let tinyint = TINYINT::new("127");
+    assert!(tinyint.is_ok());
+    assert_eq!(tinyint.unwrap().value(), 127);
+}
 
-    // Round-trip: false
-    let false_bytes = b_false.to_bytes();
-    let b_from_false = BOOL::from_bytes(&false_bytes);
-    assert_eq!(b_from_false.value(), false);
+#[test]
+fn test_tinyint_new_invalid_format() {
+    let tinyint = TINYINT::new("NaN");
+    assert!(tinyint.is_err());
+    assert_eq!(tinyint.unwrap_err(), NumericError::InvalidFormat.message());
+}
+
+#[test]
+fn test_tinyint_new_out_of_range() {
+    let val = "200"; // exceeds i8
+    let tinyint = TINYINT::new(val);
+    assert!(tinyint.is_err());
+    assert_eq!(tinyint.unwrap_err(), NumericError::OutOfRange.message());
+}
+
+#[test]
+fn test_tinyint_to_from_bytes() {
+    let tinyint = TINYINT::new("-128").unwrap();
+    let bytes = tinyint.to_bytes();
+    let restored = TINYINT::from_bytes(&bytes);
+    assert_eq!(tinyint.value(), restored.value());
+}
+
+// ---------------- For BOOL data type ----------------
+
+#[test]
+fn test_bool_true() {
+    let b = BOOL::new("true").unwrap();
+    assert_eq!(b.value(), true);
+    assert_eq!(b.to_bytes(), vec![1]);
+}
+
+#[test]
+fn test_bool_false() {
+    let b = BOOL::new("false").unwrap();
+    assert_eq!(b.value(), false);
+    assert_eq!(b.to_bytes(), vec![0]);
 }
 
 #[test]
 fn test_bool_invalid_input() {
-    let result = BOOL::new("notabool");
-    assert!(result.is_err());
-}
-
-
-#[test]
-fn test_char_creation_valid() {
-    // Test valid CHAR creation
-    let char_value = "Hello";
-    let char_size = 10; // Size larger than string length
-    let char = CHAR::new(char_size, char_value).expect("Failed to create CHAR");
-
-    assert_eq!(char.value(), char_value);
-    assert_eq!(char.size(), char_size);
+    assert!(BOOL::new("maybe").is_err());
 }
 
 #[test]
-fn test_char_creation_invalid_size() {
-    // Test CHAR creation with string length exceeding size
-    let char_value = "ThisIsTooLong";
-    let char_size = 10; // Size is too small for the string
-    let result = CHAR::new(char_size, char_value);
-    
-    assert!(result.is_err());
+fn test_bool_from_bytes_true() {
+    let b = BOOL::from_bytes(&[1]);
+    assert_eq!(b.value(), true);
 }
 
 #[test]
-fn test_char_to_bytes() {
-    // Test converting CHAR to bytes
-    let char_value = "Test";
-    let char_size = 10;
-    let char = CHAR::new(char_size, char_value).expect("Failed to create CHAR");
+fn test_bool_from_bytes_false() {
+    let b = BOOL::from_bytes(&[0]);
+    assert_eq!(b.value(), false);
+}
 
-    let bytes = char.to_bytes();
-    
-    // Check that the length includes the 4-byte size field + string length + padding
-    assert_eq!(bytes.len(), 4 + char_value.len() + (char_size as usize - char_value.len()));
+// ------ DATE Tests ------
+
+#[test]
+fn test_valid_date_creation() {
+    let date = DATE::new("2024-04-25").unwrap();
+    assert_eq!(date.year(), 2024);
+    assert_eq!(date.month(), 4);
+    assert_eq!(date.day(), 25);
 }
 
 #[test]
-fn test_char_from_bytes() {
-    // Test converting bytes back into CHAR
-    let char_value = "Test";
-    let char_size = 10;
-    let char = CHAR::new(char_size, char_value).expect("Failed to create CHAR");
-    
-    let bytes = char.to_bytes();
-    let char_from_bytes = CHAR::from_bytes(&bytes, char_size).expect("Failed to deserialize CHAR");
-
-    assert_eq!(char_from_bytes.value(), char_value);
-    assert_eq!(char_from_bytes.size(), char_size);
-}
-
-#[test]
-fn test_char_invalid_binary() {
-    // Test invalid binary input (too short or corrupted)
-    let invalid_bytes = vec![0, 0, 0, 0, 0, 0]; // Invalid length
-    let result = CHAR::from_bytes(&invalid_bytes, 10);
+fn test_invalid_format_date() {
+    let result = DATE::new("2024/04/25");
     assert!(result.is_err());
 }
 
 #[test]
-fn test_char_length_overflow() {
-    // Test if size exceeds limit
-    let char_value = "Overflow";
-    let char_size = 5; // Size is too small for the string
-    let result = CHAR::new(char_size, char_value);
-    
+fn test_invalid_date_values() {
+    let result = DATE::new("2024-02-30"); // Feb 30 is invalid
     assert!(result.is_err());
 }
 
 #[test]
-fn test_datetime_creation_valid() {
-    // Test valid DATETIME creation
-    let datetime_value = "2025-05-03 12:30:00";
-    let datetime = DATETIME::new(datetime_value).expect("Failed to create DATETIME");
-
-    assert_eq!(datetime.value(), datetime_value);
+fn test_leap_year_true() {
+    assert!(DATE::is_year_leap(2024));
 }
 
 #[test]
-fn test_datetime_creation_invalid_format() {
-    // Test DATETIME creation with invalid format (missing time)
-    let datetime_value = "2025-05-03";
-    let result = DATETIME::new(datetime_value);
-    assert!(result.is_err());
-
-    // Test DATETIME creation with invalid format (extra fields)
-    let datetime_value = "2025-05-03 12:30:00 extra";
-    let result = DATETIME::new(datetime_value);
-    assert!(result.is_err());
+fn test_leap_year_false() {
+    assert!(!DATE::is_year_leap(2023));
 }
 
 #[test]
-fn test_datetime_to_bytes() {
-    // Test converting DATETIME to bytes
-    let datetime_value = "2025-05-03 12:30:00";
-    let datetime = DATETIME::new(datetime_value).expect("Failed to create DATETIME");
-
-    let bytes = datetime.to_bytes();
-    
-    // Check that the byte length matches expected size (7 bytes)
-    assert_eq!(bytes.len(), 7);
-}
-
-#[test]
-fn test_datetime_from_bytes() {
-    // Test converting bytes back into DATETIME
-    let datetime_value = "2025-05-03 12:30:00";
-    let datetime = DATETIME::new(datetime_value).expect("Failed to create DATETIME");
-
-    let bytes = datetime.to_bytes();
-    let datetime_from_bytes = DATETIME::from_bytes(&bytes);
-
-    assert_eq!(datetime_from_bytes.value(), datetime_value);
-}
-
-#[test]
-fn test_datetime_invalid_date_or_time() {
-    // Test invalid DATETIME with incorrect date or time format
-    let result = DATETIME::new("invalid-date-time");
-    assert!(result.is_err());
-}
-
-
-#[test]
-fn test_date_creation_valid() {
-    // Test valid date creation
-    let date_value = "2025-05-03";
-    let date = DATE::new(date_value).expect("Failed to create DATE");
-
-    assert_eq!(date.value(), date_value);
-}
-
-#[test]
-fn test_date_creation_invalid_format() {
-    // Test date creation with invalid format (incorrect number of segments)
-    let date_value = "2025-05";
-    let result = DATE::new(date_value);
-    assert!(result.is_err());
-
-    // Test date creation with incorrect date
-    let date_value = "2025-13-03"; // Invalid month
-    let result = DATE::new(date_value);
-    assert!(result.is_err());
-
-    let date_value = "2025-05-32"; // Invalid day
-    let result = DATE::new(date_value);
-    assert!(result.is_err());
-}
-
-#[test]
-fn test_date_creation_invalid_value() {
-    // Test date creation with invalid value (invalid day for month)
-    let date_value = "2025-02-30"; // Invalid day for February
-    let result = DATE::new(date_value);
-    assert!(result.is_err());
-
-    // Test date creation with invalid leap year
-    let date_value = "2024-02-29"; // Valid leap year
-    let date = DATE::new(date_value).expect("Failed to create DATE");
-    assert_eq!(date.value(), date_value);
-
-    let date_value = "2023-02-29"; // Invalid leap year
-    let result = DATE::new(date_value);
-    assert!(result.is_err());
-}
-
-#[test]
-fn test_date_to_bytes() {
-    // Test converting DATE to bytes
-    let date_value = "2025-05-03";
-    let date = DATE::new(date_value).expect("Failed to create DATE");
-
+fn test_to_and_from_bytes_date() {
+    let date = DATE::new("2024-12-31").unwrap();
     let bytes = date.to_bytes();
-    
-    // Check that the byte length matches expected size (4 bytes)
-    assert_eq!(bytes.len(), 4);
+    let from = DATE::from_bytes(&bytes);
+    assert_eq!(from.year(), 2024);
+    assert_eq!(from.month(), 12);
+    assert_eq!(from.day(), 31);
 }
 
 #[test]
-fn test_date_from_bytes() {
-    // Test converting bytes back into DATE
-    let date_value = "2025-05-03";
-    let date = DATE::new(date_value).expect("Failed to create DATE");
+fn test_date_value_string() {
+    let date = DATE::new("2024-04-09").unwrap();
+    assert_eq!(date.value(), "2024-04-09");
+}
 
-    let bytes = date.to_bytes();
-    let date_from_bytes = DATE::from_bytes(&bytes);
+// ------ TIME Tests ------
 
-    assert_eq!(date_from_bytes.value(), date_value);
+#[test]
+fn test_valid_time_creation() {
+    let time = TIME::new("13:45:30").unwrap();
+    assert_eq!(time.hours(), 13);
+    assert_eq!(time.minutes(), 45);
+    assert_eq!(time.seconds(), 30);
 }
 
 #[test]
-fn test_date_value_format() {
-    // Test the value format for different dates
-    let date_value = "2025-05-03";
-    let date = DATE::new(date_value).expect("Failed to create DATE");
-
-    let formatted_value = date.value();
-    assert_eq!(formatted_value, "2025-05-03");
+fn test_invalid_time_format() {
+    let result = TIME::new("134530");
+    assert!(result.is_err());
 }
 
-
+#[test]
+fn test_invalid_time_values() {
+    let result = TIME::new("25:00:00");
+    assert!(result.is_err());
+}
 
 #[test]
-fn test_decimal_creation_valid() {
-    let decimal = DECIMAL::new("123.45", 5, 2).expect("Failed to create valid DECIMAL");
+fn test_to_and_from_bytes_time() {
+    let time = TIME::new("12:34:56").unwrap();
+    let bytes = time.to_bytes();
+    let from = TIME::from_bytes(&bytes);
+    assert_eq!(from.hours(), 12);
+    assert_eq!(from.minutes(), 34);
+    assert_eq!(from.seconds(), 56);
+}
+
+#[test]
+fn test_time_value_string() {
+    let time = TIME::new("04:09:08").unwrap();
+    assert_eq!(time.value(), "04:09:08");
+}
+
+// ------ DATETIME Tests ------
+
+#[test]
+fn test_valid_datetime_creation() {
+    let dt = DATETIME::new("2024-04-25 13:45:30").unwrap();
+    assert_eq!(dt.date().year(), 2024);
+    assert_eq!(dt.time().minutes(), 45);
+}
+
+#[test]
+fn test_invalid_datetime_format() {
+    let result = DATETIME::new("2024-04-25T13:45:30");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_to_and_from_bytes_datetime() {
+    let dt = DATETIME::new("2024-04-25 13:45:30").unwrap();
+    let bytes = dt.to_bytes();
+    let from = DATETIME::from_bytes(&bytes);
+    assert_eq!(from.value(), "2024-04-25 13:45:30");
+}
+
+#[test]
+fn test_datetime_value_string() {
+    let dt = DATETIME::new("2024-04-25 01:02:03").unwrap();
+    assert_eq!(dt.value(), "2024-04-25 01:02:03");
+}
+
+// ------ DOUBLE Tests ------
+
+#[test]
+fn test_valid_double_creation() {
+    let double = DOUBLE::new("3.1415").unwrap();
+    assert_eq!(double.value(), 3.1415);
+}
+
+#[test]
+fn test_invalid_double_format() {
+    let result = DOUBLE::new("abc");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_double_nan_infinite() {
+    assert!(DOUBLE::new("NaN").is_err());
+    assert!(DOUBLE::new("inf").is_err());
+}
+
+#[test]
+fn test_double_to_and_from_bytes() {
+    let double = DOUBLE::new("42.42").unwrap();
+    let bytes = double.to_bytes();
+    let restored = DOUBLE::from_bytes(&bytes);
+    assert_eq!(restored.value(), 42.42);
+}
+
+// ------ FLOAT Tests ------
+
+#[test]
+fn test_valid_float_creation() {
+    let float = FLOAT::new("2.718").unwrap();
+    assert_eq!(float.value(), 2.718);
+}
+
+#[test]
+fn test_invalid_float_format() {
+    let result = FLOAT::new("xyz");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_float_nan_infinite() {
+    assert!(FLOAT::new("NaN").is_err());
+    assert!(FLOAT::new("inf").is_err());
+}
+
+#[test]
+fn test_float_to_and_from_bytes() {
+    let float = FLOAT::new("15.75").unwrap();
+    let bytes = float.to_bytes();
+    let restored = FLOAT::from_bytes(&bytes);
+    assert_eq!(restored.value(), 15.75);
+}
+
+// ------ DECIMAL Tests ------
+
+#[test]
+fn test_valid_decimal_creation() {
+    let decimal = DECIMAL::new("123.45", 5, 2).unwrap();
     assert_eq!(decimal.value(), 12345);
-    assert_eq!(decimal.scale(), 2);
-    assert_eq!(decimal.precision(), 5);
+    assert_eq!(decimal.value_string(), "123.45");
 }
 
+// ------
+
 #[test]
-fn test_decimal_creation_with_padding() {
-    let decimal = DECIMAL::new("123", 5, 2).expect("Failed to create DECIMAL with padding");
-    assert_eq!(decimal.value(), 12300);
+fn test_decimal_with_padding_zeros() {
+    let decimal = DECIMAL::new("12.3", 5, 2).unwrap();
+    assert_eq!(decimal.value(), 1230);
+    assert_eq!(decimal.value_string(), "12.30");
 }
 
-#[test]
-fn test_decimal_creation_rounding() {
-    let decimal = DECIMAL::new("123.456", 6, 2).expect("Failed to round DECIMAL");
-    assert_eq!(decimal.value(), 12346); // Rounded from 12345.6
-}
+// ------
 
 #[test]
-fn test_decimal_invalid_format() {
-    let result = DECIMAL::new("12.34.56", 6, 2);
-    assert!(result.is_err());
-
-    let result = DECIMAL::new("abc", 6, 2);
+fn test_decimal_invalid_format_alpha() {
+    let result = DECIMAL::new("12.a3", 5, 2);
     assert!(result.is_err());
 }
+
+// ------
 
 #[test]
 fn test_decimal_precision_overflow() {
-    let result = DECIMAL::new("123456789012345678901234567890123456789", 39, 0);
+    let result = DECIMAL::new("12345.67", 6, 2); // Should overflow precision
     assert!(result.is_err());
 }
 
+// ------
+
 #[test]
-fn test_decimal_scale_greater_than_precision() {
-    let result = DECIMAL::new("12.34", 3, 4);
+fn test_decimal_rounding_overflow() {
+    let result = DECIMAL::new("999.999", 5, 2); // Round-up might overflow
     assert!(result.is_err());
 }
 
-#[test]
-fn test_decimal_to_from_bytes() {
-    let decimal = DECIMAL::new("123.45", 5, 2).unwrap();
-    let bytes = decimal.to_bytes();
-    let restored = DECIMAL::from_bytes(&bytes, 5, 2);
-    assert_eq!(decimal.value(), restored.value());
-    assert_eq!(decimal.scale(), restored.scale());
-    assert_eq!(decimal.precision(), restored.precision());
-}
-
+// ------
 
 #[test]
-fn test_double_creation_valid() {
-    let double = DOUBLE::new("123.456").expect("Valid DOUBLE creation failed");
-    assert_eq!(double.value(), 123.456);
-}
-
-#[test]
-fn test_double_creation_invalid() {
-    let result = DOUBLE::new("not_a_number");
-    assert!(result.is_err());
-}
-
-#[test]
-fn test_double_to_bytes_and_from_bytes() {
-    let original = DOUBLE::new("3.14159").unwrap();
+fn test_decimal_to_and_from_bytes() {
+    let original = DECIMAL::new("456.78", 6, 2).unwrap();
     let bytes = original.to_bytes();
-    let restored = DOUBLE::from_bytes(&bytes);
-    assert!((original.value() - restored.value()).abs() < f64::EPSILON);
+    let restored = DECIMAL::from_bytes(&bytes, 6, 2);
+    assert_eq!(restored.value(), 45678);
+    assert_eq!(restored.value_string(), "456.78");
 }
 
+// ------
 
 #[test]
-fn test_float_creation_valid() {
-    let float = FLOAT::new("123.45").expect("Valid FLOAT creation failed");
-    assert!((float.value() - 123.45).abs() < f32::EPSILON);
+fn test_negative_decimal_value() {
+    let decimal = DECIMAL::new("-123.45", 6, 2).unwrap();
+    assert_eq!(decimal.value(), -12345);
+    assert_eq!(decimal.value_string(), "-123.45");
 }
 
+// ------
+
 #[test]
-fn test_float_creation_invalid() {
-    let result = FLOAT::new("abc");
+fn test_negative_with_padding_zeros() {
+    let decimal = DECIMAL::new("-7.1", 4, 2).unwrap();
+    assert_eq!(decimal.value(), -710);
+    assert_eq!(decimal.value_string(), "-7.10");
+}
+
+// ------
+
+#[test]
+fn test_negative_decimal_rounding_overflow() {
+    let result = DECIMAL::new("-999.999", 5, 2); // Should overflow after rounding
     assert!(result.is_err());
 }
 
 #[test]
-fn test_float_to_bytes_and_from_bytes() {
-    let original = FLOAT::new("5.25").unwrap();
-    let bytes = original.to_bytes();
-    let restored = FLOAT::from_bytes(&bytes);
-    assert!((original.value() - restored.value()).abs() < f32::EPSILON);
-}
-
-
-#[test]
-fn test_int_creation_valid() {
-    let int = INT::new("42").expect("Valid INT creation failed");
-    assert_eq!(int.value(), 42);
+fn test_char_value_within_size() {
+    let char_field = CHAR::new(10, "Hello").unwrap();
+    assert_eq!(char_field.value(), "Hello");
+    assert_eq!(char_field.size(), 10);
+    assert_eq!(char_field.to_bytes().len(), 14); // 4 bytes for length + 5 bytes for value + 5 bytes for padding
 }
 
 #[test]
-fn test_int_creation_invalid() {
-    let result = INT::new("not_a_number");
+fn test_char_value_exceeds_size() {
+    let result = CHAR::new(5, "Hello, World!");
     assert!(result.is_err());
 }
 
 #[test]
-fn test_int_to_bytes_and_from_bytes() {
-    let original = INT::new("123456").unwrap();
-    let bytes = original.to_bytes();
-    let restored = INT::from_bytes(&bytes);
-    assert_eq!(original.value(), restored.value());
+fn test_char_value_with_padding_zeros() {
+    let char_field = CHAR::new(10, "Hi").unwrap();
+    assert_eq!(char_field.value(), "Hi");
+    assert_eq!(char_field.size(), 10);
+    assert_eq!(char_field.to_bytes().len(), 14); // 4 bytes for length + 2 bytes for value + 8 bytes for padding
 }
 
+// ------ VARCHAR Tests ------
 
 #[test]
-fn test_smallint_creation_valid() {
-    let smallint = SMALLINT::new("32767").expect("Valid SMALLINT creation failed");
-    assert_eq!(smallint.value(), 32767);
+fn test_varchar_value_within_size() {
+    let varchar_field = VARCHAR::new(10, "Hello").unwrap();
+    assert_eq!(varchar_field.value(), "Hello");
+    assert_eq!(varchar_field.size(), 10);
+    assert_eq!(varchar_field.to_bytes().len(), 5); // No padding for VARCHAR
 }
 
 #[test]
-fn test_smallint_creation_invalid() {
-    let result = SMALLINT::new("not_a_number");
+fn test_varchar_value_exceeds_size() {
+    let result = VARCHAR::new(5, "Hello, World!");
     assert!(result.is_err());
 }
 
 #[test]
-fn test_smallint_to_bytes_and_from_bytes() {
-    let original = SMALLINT::new("-12345").unwrap();
-    let bytes = original.to_bytes();
-    let restored = SMALLINT::from_bytes(&bytes);
-    assert_eq!(original.value(), restored.value());
+fn test_varchar_value_below_min_size() {
+    let result = VARCHAR::new(5, "");
+    assert!(result.is_err());
 }
 
+// ------ TEXT Tests ------
 
 #[test]
-fn test_text_creation_valid() {
-    let txt = TEXT::new("This is valid").expect("Should create TEXT");
-    assert_eq!(txt.value(), "This is valid");
+fn test_text_value_within_size() {
+    let text_field = TEXT::new("Hello, World!").unwrap();
+    assert_eq!(text_field.value(), "Hello, World!");
+    assert_eq!(text_field.to_bytes().len(), 17); // 4 bytes for length + 14 bytes for value
 }
 
 #[test]
-fn test_text_creation_invalid_length() {
-    let oversized = "a".repeat((MAX_TEXT_SIZE + 1) as usize);
-    let result = TEXT::new(&oversized);
+fn test_text_value_exceeds_size() {
+    let str = &"A".repeat(MAX_TEXT_SIZE as usize + 1);
+    let result = TEXT::new(str);
     assert!(result.is_err());
 }
 
 #[test]
-fn test_text_to_bytes_and_from_bytes() {
-    let original = TEXT::new("serialize me").unwrap();
-    let bytes = original.to_bytes();
-    let restored = TEXT::from_bytes(&bytes).expect("Should decode from bytes");
-    assert_eq!(original.value(), restored.value());
+fn test_text_value_below_min_size() {
+    let str = &"A".repeat(MIN_TEXT_SIZE as usize - 1);
+    let result = TEXT::new(str);
+    assert!(result.is_err());
 }
 
+// ------ Edge case tests ------
 
 #[test]
-fn test_time_creation_valid() {
-    let time = TIME::new("23:59:59").unwrap();
-    assert_eq!(time.value(), "23:59:59");
-}
-
-#[test]
-fn test_time_creation_invalid_format() {
-    let err = TIME::new("24-00-00");
-    assert!(err.is_err());
+fn test_char_empty_value() {
+    let char_field = CHAR::new(10, "");
+    assert!(char_field.is_err());
 }
 
 #[test]
-fn test_time_serialization_roundtrip() {
-    let time = TIME::new("05:04:03").unwrap();
-    let bytes = time.to_bytes();
-    let parsed = TIME::from_bytes(&bytes);
-    assert_eq!(parsed.value(), "05:04:03");
-}
-
-
-#[test]
-fn test_tinyint_creation_valid() {
-    let num = TINYINT::new("127").unwrap();
-    assert_eq!(num.value(), 127);
+fn test_varchar_empty_value() {
+    let varchar_field = VARCHAR::new(10, " ").unwrap();
+    assert_eq!(varchar_field.value(), " ");
+    assert_eq!(varchar_field.size(), 10);
+    assert_eq!(varchar_field.to_bytes().len(), 1); // No bytes for value
 }
 
 #[test]
-fn test_tinyint_creation_invalid() {
-    let num = TINYINT::new("200"); // out of i8 range
-    assert!(num.is_err());
+fn test_text_empty_value() {
+    let text_field = TEXT::new(" ").unwrap();
+    assert_eq!(text_field.value(), " ");
+    assert_eq!(text_field.to_bytes().len(), 5); // 4 bytes for length + 1 bytes for value
 }
 
 #[test]
-fn test_tinyint_serialization_roundtrip() {
-    let num = TINYINT::new("-5").unwrap();
-    let bytes = num.to_bytes();
-    let parsed = TINYINT::from_bytes(&bytes);
-    assert_eq!(parsed.value(), -5);
+fn test_varchar_padding_zero_value() {
+    let varchar_field = VARCHAR::new(5, "Hi").unwrap();
+    assert_eq!(varchar_field.value(), "Hi");
+    assert_eq!(varchar_field.size(), 5);
+    assert_eq!(varchar_field.to_bytes().len(), 2); // 2 bytes for value, no padding for VARCHAR
+}
+
+// Helper function to create a ColumnEntry for testing
+fn create_column_entry(
+    datatype: DataType,
+    max_size: u32,
+    null: bool,
+    unique: bool,
+    is_primary_key: bool,
+    is_foreign_key: bool,
+) -> ColumnEntry {
+    ColumnEntry {
+        column_name: "test_column".to_string(),
+        oid: 1,
+        datatype,
+        max_size,
+        null,
+        unique,
+        is_primary_key,
+        is_foreign_key,
+    }
+    
+}
+
+// Test serialization and deserialization for each TypedValue variant
+#[test]
+fn test_typed_value_char() {
+    let char_val = CHAR::new(10, "Hello").unwrap();
+    let typed_value = TypedValue::CHAR(char_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::CHAR, 10, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::CHAR(c) => assert_eq!(c.value(), "Hello"),
+        _ => panic!("Expected CHAR variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_varchar() {
+    let varchar_val = VARCHAR::new(10, "Hello").unwrap();
+    let typed_value = TypedValue::VARCHAR(varchar_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::VARCHAR, 10, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::VARCHAR(v) => assert_eq!(v.value(), "Hello"),
+        _ => panic!("Expected VARCHAR variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_bool() {
+    let bool_val = BOOL::new("true").unwrap();
+    let typed_value = TypedValue::BOOL(bool_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::BOOL, 1, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::BOOL(b) => assert_eq!(b.value(), true),
+        _ => panic!("Expected BOOL variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_int() {
+    let int_val = INT::new("123").unwrap();
+    let typed_value = TypedValue::INT(int_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::INT, 4, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::INT(i) => assert_eq!(i.value(), 123),
+        _ => panic!("Expected INT variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_bigint() {
+    let bigint_val = BIGINT::new("1234567890123").unwrap();
+    let typed_value = TypedValue::BIGINT(bigint_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::BIGINT, 8, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::BIGINT(b) => assert_eq!(b.value(), 1234567890123),
+        _ => panic!("Expected BIGINT variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_smallint() {
+    let smallint_val = SMALLINT::new("32767").unwrap();
+    let typed_value = TypedValue::SMALLINT(smallint_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::SMALLINT, 2, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::SMALLINT(s) => assert_eq!(s.value(), 32767),
+        _ => panic!("Expected SMALLINT variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_tinyint() {
+    let tinyint_val = TINYINT::new("127").unwrap();
+    let typed_value = TypedValue::TINYINT(tinyint_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::TINYINT, 1, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::TINYINT(t) => assert_eq!(t.value(), 127),
+        _ => panic!("Expected TINYINT variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_decimal() {
+    let decimal_val = DECIMAL::new("123.45", 5, 2).unwrap();
+    let typed_value = TypedValue::DECIMAL(decimal_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::DECIMAL, 502, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::DECIMAL(d) => assert_eq!(d.value_string(), "123.45"),
+        _ => panic!("Expected DECIMAL variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_double() {
+    let double_val = DOUBLE::new("3.1415").unwrap();
+    let typed_value = TypedValue::DOUBLE(double_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::DOUBLE, 8, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::DOUBLE(d) => assert_eq!(d.value(), 3.1415),
+        _ => panic!("Expected DOUBLE variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_float() {
+    let float_val = FLOAT::new("2.718").unwrap();
+    let typed_value = TypedValue::FLOAT(float_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::FLOAT, 4, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::FLOAT(f) => assert_eq!(f.value(), 2.718),
+        _ => panic!("Expected FLOAT variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_date() {
+    let date_val = DATE::new("2024-04-25").unwrap();
+    let typed_value = TypedValue::DATE(date_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::DATE, 12, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::DATE(d) => assert_eq!(d.value(), "2024-04-25"),
+        _ => panic!("Expected DATE variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_time() {
+    let time_val = TIME::new("13:45:30").unwrap();
+    let typed_value = TypedValue::TIME(time_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::TIME, 8, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::TIME(t) => assert_eq!(t.value(), "13:45:30"),
+        _ => panic!("Expected TIME variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_datetime() {
+    let datetime_val = DATETIME::new("2024-04-25 13:45:30").unwrap();
+    let typed_value = TypedValue::DATETIME(datetime_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::DATETIME, 20, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::DATETIME(dt) => assert_eq!(dt.value(), "2024-04-25 13:45:30"),
+        _ => panic!("Expected DATETIME variant"),
+    }
+}
+
+#[test]
+fn test_typed_value_text() {
+    let text_val = TEXT::new("Hello, World!").unwrap();
+    let typed_value = TypedValue::TEXT(text_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry =
+        create_column_entry(DataType::TEXT, MAX_TEXT_SIZE, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::TEXT(t) => assert_eq!(t.value(), "Hello, World!"),
+        _ => panic!("Expected TEXT variant"),
+    }
 }
 
 
+// Edge case: TEXT at max size
 #[test]
-fn test_varchar_creation_valid() {
-    let v = VARCHAR::new(20, "hello").unwrap();
-    assert_eq!(v.value(), "hello");
+fn test_typed_value_text_max_size() {
+    let text_str = "A".repeat(MAX_TEXT_SIZE as usize);
+    let text_val = TEXT::new(&text_str).unwrap();
+    let typed_value = TypedValue::TEXT(text_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry =
+        create_column_entry(DataType::TEXT, MAX_TEXT_SIZE, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::TEXT(t) => assert_eq!(t.value(), text_str),
+        _ => panic!("Expected TEXT variant"),
+    }
 }
 
+// Edge case: DECIMAL with negative value
 #[test]
-fn test_varchar_creation_too_long() {
-    let long_str = "a".repeat((MAX_CHAR_SIZE + 1) as usize);
-    let res = VARCHAR::new(MAX_CHAR_SIZE + 1, &long_str);
-    assert!(res.is_err());
-}
-
-#[test]
-fn test_varchar_serialization_roundtrip() {
-    let original = VARCHAR::new(20, "gen_z_rustacean").unwrap();
-    let bytes = VARCHAR::to_bytes(&original);
-    let restored = VARCHAR::from_bytes(&bytes, 20).unwrap();
-    assert_eq!(original.value(), restored.value());
+fn test_typed_value_decimal_negative() {
+    let decimal_val = DECIMAL::new("-123.45", 5, 2).unwrap();
+    let typed_value = TypedValue::DECIMAL(decimal_val);
+    let bytes = typed_value.to_bytes();
+    let column_entry = create_column_entry(DataType::DECIMAL, 502, true, false, false, false);
+    let restored = TypedValue::from_bytes(&bytes, &column_entry);
+    match restored {
+        TypedValue::DECIMAL(d) => assert_eq!(d.value_string(), "-123.45"),
+        _ => panic!("Expected DECIMAL variant"),
+    }
 }
 

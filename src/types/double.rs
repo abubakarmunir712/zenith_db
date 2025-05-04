@@ -1,7 +1,7 @@
 /// Represents a DOUBLE (64-bit floating point) data type.
 use serde::{Deserialize, Serialize, de::value};
 
-use crate::enums::type_errors::TypeError;
+use crate::enums::type_errors::NumericError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DOUBLE {
@@ -10,11 +10,18 @@ pub struct DOUBLE {
 
 impl DOUBLE {
     /// Creates a new DOUBLE instance.
-    pub fn new(value: &str) -> Result<Self, String> {
-        let value: f64 = value
-            .parse()
-            .map_err(|e| TypeError::MismatchedDataType.message(value, "DOUBLE"))?;
-        Ok(DOUBLE { value })
+    pub fn new(value: &str) -> Result<Self, &str> {
+        let value = value.parse::<f64>();
+        match value {
+            Ok(val) => {
+                if val.is_infinite() || val.is_nan() {
+                    Err(NumericError::OutOfRange.message())
+                } else {
+                    Ok(DOUBLE { value: val })
+                }
+            }
+            Err(_) => Err(NumericError::InvalidFormat.message()),
+        }
     }
 
     /// Converts the DOUBLE value to an 8-byte little-endian representation.
@@ -30,7 +37,7 @@ impl DOUBLE {
         }
     }
 
-    pub fn value(&self)->f64{
+    pub fn value(&self) -> f64 {
         self.value
     }
 }

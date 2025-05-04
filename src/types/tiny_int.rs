@@ -1,7 +1,7 @@
 /// Represents a TINYINT (8-bit signed integer) data type.
 use serde::{Deserialize, Serialize};
 
-use crate::enums::type_errors::TypeError;
+use crate::enums::type_errors::NumericError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TINYINT {
@@ -10,11 +10,18 @@ pub struct TINYINT {
 
 impl TINYINT {
     /// Creates a new TINYINT instance.
-    pub fn new(value: &str) -> Result<Self, String> {
-        let value: i8 = value
-            .parse()
-            .map_err(|e| TypeError::MismatchedDataType.message(value, "TINYINT"))?;
-        Ok(TINYINT { value })
+    pub fn new(value: &str) -> Result<Self, &str> {
+        let value = value.parse::<i8>();
+        match value {
+            Ok(val) => Ok(TINYINT { value: val }),
+            Err(e) => {
+                if e.to_string().contains("too large") {
+                    Err(NumericError::OutOfRange.message())
+                } else {
+                    Err(NumericError::InvalidFormat.message())
+                }
+            }
+        }
     }
 
     /// Converts the given i8 value to a 1-byte little-endian representation.
@@ -30,7 +37,7 @@ impl TINYINT {
         }
     }
 
-    pub fn value(&self)->i8{
+    pub fn value(&self) -> i8 {
         self.value
     }
 }

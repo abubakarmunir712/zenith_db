@@ -1,7 +1,7 @@
 /// Represents an INT (32-bit signed integer) data type.
 use serde::{Deserialize, Serialize};
 
-use crate::enums::type_errors::TypeError;
+use crate::enums::type_errors::NumericError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct INT {
@@ -10,11 +10,18 @@ pub struct INT {
 
 impl INT {
     /// Creates a new INT instance.
-    pub fn new(value: &str) -> Result<Self, String> {
-        let value: i32 = value
-            .parse()
-            .map_err(|e| TypeError::MismatchedDataType.message(value, "INT"))?;
-        Ok(INT { value })
+    pub fn new(value: &str) -> Result<Self, &str> {
+        let value = value.parse::<i32>();
+        match value {
+            Ok(val) => Ok(INT { value: val }),
+            Err(e) => {
+                if e.to_string().contains("too large") {
+                    Err(NumericError::OutOfRange.message())
+                } else {
+                    Err(NumericError::InvalidFormat.message())
+                }
+            }
+        }
     }
 
     /// Converts the given i32 value to a 4-byte little-endian representation.

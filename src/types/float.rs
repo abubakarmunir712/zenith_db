@@ -1,7 +1,7 @@
 /// Represents a FLOAT (32-bit floating point) data type.
 use serde::{Deserialize, Serialize};
 
-use crate::enums::type_errors::TypeError;
+use crate::enums::type_errors::NumericError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FLOAT {
@@ -10,11 +10,18 @@ pub struct FLOAT {
 
 impl FLOAT {
     /// Creates a new FLOAT instance.
-    pub fn new(value: &str) -> Result<Self, String> {
-        let value: f32 = value
-            .parse()
-            .map_err(|e| TypeError::MismatchedDataType.message(value, "FLOAT"))?;
-        Ok(FLOAT { value })
+    pub fn new(value: &str) -> Result<Self, &str> {
+        let value = value.parse::<f32>();
+        match value {
+            Ok(val) => {
+                if val.is_infinite() || val.is_nan() {
+                    Err(NumericError::OutOfRange.message())
+                } else {
+                    Ok(FLOAT { value: val })
+                }
+            }
+            Err(_) => Err(NumericError::InvalidFormat.message()),
+        }
     }
 
     /// Converts the FLOAT value to a 4-byte little-endian representation.
