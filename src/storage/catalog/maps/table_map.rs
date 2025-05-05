@@ -27,8 +27,18 @@ impl TableMap {
         self.no_of_tables += 1;
     }
 
+    pub fn delete_table(&mut self, table_name: &str)->u16 {
+        let entry = self.map.remove(table_name).unwrap();
+        self.no_of_tables -= 1;
+        entry.oid()
+    }
+
     pub fn get_table(&self, table_name: &str) -> Option<&TableEntry> {
         self.map().get(table_name)
+    }
+
+    pub fn get_table_as_mut(&mut self, table_name: &str) -> Option<&mut TableEntry> {
+        self.map.get_mut(table_name)
     }
 
     pub fn serialize(&self, buffer: &mut [u8]) {

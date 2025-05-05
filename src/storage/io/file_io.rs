@@ -234,4 +234,29 @@ impl IOEngine {
         file.write_all(buffer).map_err(|e| e.to_string())?;
         Ok(())
     }
+
+    pub fn page_exists(
+        db_name: &str,
+        file_name: &str,
+        page_no: u32,
+        page_type: PageType,
+    ) -> Result<bool, String> {
+        let path = Self::_create_path(db_name, file_name, &page_type);
+        let no_of_pages = Self::calculate_total_pages(db_name, file_name, page_type)?;
+        if page_no < no_of_pages {
+            return Ok(true);
+        } else {
+            return Ok(false);
+        }
+    }
+
+    pub fn db_exists(db_name: &str) -> bool {
+        let base = PathBuf::from(DB_PATH).join(db_name);
+        dir_exists(&base)
+    }
+
+    pub fn file_exists(db_name: &str, file_name: &str, page_type: &PageType) -> bool {
+        let path = Self::_create_path(db_name, file_name, page_type);
+        file_exists(&path)
+    }
 }

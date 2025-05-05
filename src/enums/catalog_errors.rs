@@ -36,6 +36,11 @@ pub enum CatalogError {
 
     /// Occurs when a column does not exist in the table.
     ColumnDoesNotExist,
+
+    DatabaseNotFound,
+
+    DatabaseAlreadyExists,
+
 }
 
 #[rustfmt::skip]
@@ -55,6 +60,9 @@ impl CatalogError {
             CatalogError::TableDoesNotExist => "The specified table does not exist in the database.",
             CatalogError::ColumnAlreadyExists => "A column with the same name already exists in the table.",
             CatalogError::ColumnDoesNotExist => "The specified column does not exist in the table.",
+            CatalogError::DatabaseNotFound => "Database not found",
+            CatalogError::DatabaseAlreadyExists => "Database already exists",
+
         }
 
     }

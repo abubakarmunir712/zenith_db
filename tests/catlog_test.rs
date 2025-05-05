@@ -111,7 +111,7 @@ fn test_column_map_serialize_deserialize() {
         if i % 2 == 0 {
             entry.make_nullable();
         }
-        column_map.create_column(entry).unwrap();
+        column_map.create_column(entry);
     }
 
     let mut buffer = [0u8; CATLOG_PAGE_SIZE as usize];
@@ -144,8 +144,8 @@ fn test_column_map_io() {
     let mut col2 = ColumnEntry::new("name".to_string(), 2, DataType::VARCHAR, 50).unwrap();
     col2.make_nullable();
 
-    column_map.create_column(col1).unwrap();
-    column_map.create_column(col2).unwrap();
+    column_map.create_column(col1);
+    column_map.create_column(col2);
 
     // Step 3: Serialize ColumnMap to buffer
     let mut write_buffer = [0u8; CATLOG_PAGE_SIZE as usize];

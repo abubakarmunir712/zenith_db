@@ -20,11 +20,16 @@ impl ColumnMap {
         }
     }
 
-    pub fn create_column(&mut self, column_entry: ColumnEntry) -> Result<(), &str> {
+    pub fn create_column(&mut self, column_entry: ColumnEntry) {
         self.map
             .insert(column_entry.column_name().to_string(), column_entry);
         self.no_of_columns += 1;
-        Ok(())
+    }
+
+    pub fn delete_column(&mut self, column_name: &str) -> u16 {
+        let col = self.map.remove(column_name).unwrap();
+        self.no_of_columns -= 1;
+        col.oid()
     }
 
     pub fn serialize(&self, buffer: &mut [u8]) {
@@ -71,12 +76,24 @@ impl ColumnMap {
     }
 
     // Getters
+    pub fn get_column(&self, column_name: &str) -> Option<&ColumnEntry> {
+        self.map.get(column_name)
+    }
+
+    pub fn get_column_as_mut(&mut self, column_name: &str) -> Option<&mut ColumnEntry> {
+        self.map.get_mut(column_name)
+    }
+
     pub fn no_of_columns(&self) -> u16 {
         self.no_of_columns
     }
 
     pub fn column_oid_bitmap(&self) -> &[u8; MAX_COLUMNS_LIMIT / 8] {
         &self.column_oid_bitmap
+    }
+
+    pub fn column_oid_bitmap_mut(&mut self) -> &mut [u8; MAX_COLUMNS_LIMIT / 8] {
+        &mut self.column_oid_bitmap
     }
 
     pub fn map(&self) -> &HashMap<String, ColumnEntry> {

@@ -2,6 +2,11 @@ use crate::{
     configs::db_internal_configs::DbConfigs::MAX_COLUMNS_IN_FOREIGN_KEY,
     enums::{cascading_type::ForeignKeyAction, catalog_errors::CatalogError},
 };
+
+// Future Improvement:
+// The f_table and r_table used for every pair in an entry will always be the same.
+// Instead of repeating that info, store it once in `RefEntry`.
+// This will reduce redundancy and make the schema cleaner.
 pub struct RefPair {
     f_table_oid: Option<u16>,
     f_column_oid: Option<u16>,

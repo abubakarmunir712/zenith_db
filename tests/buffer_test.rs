@@ -288,7 +288,7 @@ fn test_catalog_buffer() {
     let mut column_entry = ColumnEntry::new(col_name.to_string(), 1, DataType::CHAR, 20).unwrap();
     column_entry.make_foreign();
     column_entry.make_unique();
-    column_map.create_column(column_entry).unwrap();
+    column_map.create_column(column_entry);
     let mut buffer: [u8; 32768] = [0; CATLOG_PAGE_SIZE as usize];
     column_map.serialize(&mut buffer);
     IOEngine::append_page(db_name, db_name, &buffer, PageType::CatlogPage).unwrap();
