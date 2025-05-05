@@ -19,13 +19,13 @@ pub fn generate_oid(bitmask: &[u8]) -> Option<usize> {
     None
 }
 
-pub fn delete_oid(bitmask: &mut Vec<u8>, value: u16) {
+pub fn delete_oid(bitmask: &mut [u8], value: u16) {
     let index= (value as usize - 1) / 8; 
     let bit_pos = (value - 1) % 8;
     bitmask[index] |= 1 << (7 - bit_pos);
 }
 
-pub fn undelete_oid(bitmask: &mut Vec<u8>, value: u16) {
+pub fn undelete_oid(bitmask: &mut [u8], value: u16) {
     let index = (value as usize - 1) / 8;
     let bit_pos = (value - 1) % 8; 
     bitmask[index] &= !(1 << (7 - bit_pos));

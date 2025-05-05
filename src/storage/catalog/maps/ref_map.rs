@@ -1,7 +1,7 @@
 use super::super::entries::ref_entry::RefEntry;
 use crate::{
     configs::{config::Config::REF_PAGE_SIZE, db_internal_configs::DbConfigs::MAX_REF_SIZE},
-    enums::catlog_errors::CatalogError,
+    enums::catalog_errors::CatalogError,
 };
 
 pub struct RefMap {
@@ -28,24 +28,19 @@ impl RefMap {
         Ok(())
     }
 
-    pub fn serialize(&self, buffer: &mut [u8; REF_PAGE_SIZE as usize]) -> Result<(), String> {
+    pub fn serialize(&self, buffer: &mut [u8]) {
         // First 2 bytes = number of references
         buffer[0..2].copy_from_slice(&self.no_of_ref.to_le_bytes());
 
         for (i, entry) in self.map.iter().enumerate() {
             let entry_bytes = entry.serialize();
             let offset = 2 + (i * 32);
-            if offset + 32 > buffer.len() {
-                return Err("Buffer overflow while serializing RefMap".to_string());
-            }
             buffer[offset..offset + 32].copy_from_slice(&entry_bytes);
         }
-
-        Ok(())
     }
 
     /// Deserializes a RefMap from a &[u8]
-    pub fn deserialize(data: &[u8; REF_PAGE_SIZE as usize]) -> Result<Self, String> {
+    pub fn deserialize(data: &[u8]) -> Self {
         let no_of_ref = u16::from_le_bytes([data[0], data[1]]);
         let mut map = Vec::with_capacity(no_of_ref as usize);
 
@@ -56,7 +51,7 @@ impl RefMap {
             map.push(ref_entry);
         }
 
-        Ok(Self { no_of_ref, map })
+        Self { no_of_ref, map }
     }
 
     pub fn no_of_ref(&self) -> u16 {

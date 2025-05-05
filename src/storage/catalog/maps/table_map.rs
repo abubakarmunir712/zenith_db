@@ -1,14 +1,14 @@
 use super::super::entries::table_entry::TableEntry;
 use crate::{
     configs::{config::Config::CATLOG_PAGE_SIZE, db_internal_configs::DbConfigs::MAX_TABLES_LIMIT},
-    enums::catlog_errors::CatalogError,
+    enums::catalog_errors::CatalogError,
 };
 use std::collections::HashMap;
 
 pub struct TableMap {
-    pub no_of_tables: u16,
-    pub table_oid_bitmap: [u8; MAX_TABLES_LIMIT / 8],
-    pub map: HashMap<String, TableEntry>,
+    no_of_tables: u16,
+    table_oid_bitmap: [u8; MAX_TABLES_LIMIT / 8],
+    map: HashMap<String, TableEntry>,
 }
 
 impl TableMap {
@@ -21,14 +21,17 @@ impl TableMap {
         }
     }
 
-    pub fn create_table(&mut self, table_entry: TableEntry) -> Result<(), &str> {
+    pub fn create_table(&mut self, table_entry: TableEntry) {
         self.map
             .insert(table_entry.table_name().to_string(), table_entry);
         self.no_of_tables += 1;
-        Ok(())
     }
 
-    pub fn serialize(&self, buffer: &mut [u8; CATLOG_PAGE_SIZE as usize]) {
+    pub fn get_table(&self, table_name: &str) -> Option<&TableEntry> {
+        self.map().get(table_name)
+    }
+
+    pub fn serialize(&self, buffer: &mut [u8]) {
         // Serialize number of tables
         buffer[0..2].copy_from_slice(&self.no_of_tables.to_le_bytes());
 
@@ -46,7 +49,7 @@ impl TableMap {
         }
     }
 
-    pub fn deserialize(buffer: &[u8; CATLOG_PAGE_SIZE as usize]) -> Self {
+    pub fn deserialize(buffer: &[u8]) -> Self {
         let no_of_tables = u16::from_le_bytes([buffer[0], buffer[1]]);
 
         let bitmap_size = MAX_TABLES_LIMIT / 8;
@@ -69,5 +72,30 @@ impl TableMap {
             table_oid_bitmap,
             map,
         }
+    }
+
+    // Immutable getter for number of tables
+    pub fn no_of_tables(&self) -> u16 {
+        self.no_of_tables
+    }
+
+    // Immutable getter for the table OID bitmap
+    pub fn table_oid_bitmap(&self) -> &[u8; MAX_TABLES_LIMIT / 8] {
+        &self.table_oid_bitmap
+    }
+
+    // Mutable getter for the table OID bitmap
+    pub fn table_oid_bitmap_mut(&mut self) -> &mut [u8; MAX_TABLES_LIMIT / 8] {
+        &mut self.table_oid_bitmap
+    }
+
+    // Immutable getter for the table map
+    pub fn map(&self) -> &HashMap<String, TableEntry> {
+        &self.map
+    }
+
+    // Mutable getter for the table map
+    pub fn map_mut(&mut self) -> &mut HashMap<String, TableEntry> {
+        &mut self.map
     }
 }

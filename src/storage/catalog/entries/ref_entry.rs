@@ -1,6 +1,6 @@
 use crate::{
     configs::db_internal_configs::DbConfigs::MAX_COLUMNS_IN_FOREIGN_KEY,
-    enums::{cascading_type::ForeignKeyAction, catlog_errors::CatalogError},
+    enums::{cascading_type::ForeignKeyAction, catalog_errors::CatalogError},
 };
 pub struct RefPair {
     f_table_oid: Option<u16>,

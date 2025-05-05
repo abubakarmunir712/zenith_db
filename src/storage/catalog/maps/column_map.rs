@@ -27,7 +27,7 @@ impl ColumnMap {
         Ok(())
     }
 
-    pub fn serialize(&self, buffer: &mut [u8; CATLOG_PAGE_SIZE as usize]) {
+    pub fn serialize(&self, buffer: &mut [u8]) {
         // Write number of columns
         buffer[0..2].copy_from_slice(&self.no_of_columns.to_le_bytes());
 
@@ -45,7 +45,7 @@ impl ColumnMap {
         }
     }
 
-    pub fn deserialize(buffer: &[u8; CATLOG_PAGE_SIZE as usize]) -> Self {
+    pub fn deserialize(buffer: &[u8]) -> Self {
         let no_of_columns = u16::from_le_bytes([buffer[0], buffer[1]]);
 
         let bitmap_size = MAX_COLUMNS_LIMIT / 8;

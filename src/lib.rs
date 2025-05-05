@@ -11,6 +11,7 @@ pub mod storage {
     }
     pub mod buffer{
         pub mod page_buffer;
+        pub mod catalog_buffer;
     }
 }
 pub mod utils;

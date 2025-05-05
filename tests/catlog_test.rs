@@ -1,7 +1,7 @@
 use ZenithDB::configs::config::Config::{CATLOG_PAGE_SIZE, REF_PAGE_SIZE};
 use ZenithDB::configs::db_internal_configs::DbConfigs::MAX_REF_SIZE;
 use ZenithDB::enums::cascading_type::ForeignKeyAction;
-use ZenithDB::enums::catlog_errors::CatalogError;
+use ZenithDB::enums::catalog_errors::CatalogError;
 use ZenithDB::enums::datatypes::DataType;
 use ZenithDB::enums::page_types::PageType;
 use ZenithDB::storage::catalog::entries::column_entry::ColumnEntry;
@@ -26,7 +26,7 @@ fn test_table_map_serialize_deserialize() {
         for _ in 0..i % 5 {
             entry.increase_no_of_cols_in_pk();
         }
-        table_map.create_table(entry).unwrap();
+        table_map.create_table(entry);
     }
 
     let mut buffer = [0u8; CATLOG_PAGE_SIZE as usize];
@@ -34,11 +34,11 @@ fn test_table_map_serialize_deserialize() {
 
     let deserialized = TableMap::deserialize(&buffer);
 
-    assert_eq!(deserialized.no_of_tables, 400);
+    assert_eq!(deserialized.no_of_tables(), 400);
 
     for i in 0..400 {
         let name = format!("table_{}", i);
-        let entry = deserialized.map.get(&name).unwrap();
+        let entry = deserialized.map().get(&name).unwrap();
         assert_eq!(entry.oid(), i);
         assert_eq!(entry.columns(), i + 1);
         assert_eq!(entry.no_of_cols_in_primary_key(), (i % 5) as u8);
@@ -68,8 +68,8 @@ fn test_table_map_io() {
     entry2.increase_columns();
     entry2.increase_no_of_cols_in_pk();
     entry2.increase_no_of_cols_in_pk();
-    table_map.create_table(entry1).unwrap();
-    table_map.create_table(entry2).unwrap();
+    table_map.create_table(entry1);
+    table_map.create_table(entry2);
 
     // Step 3: Serialize TableMap to buffer
     let mut write_buffer = [0u8; CATLOG_PAGE_SIZE as usize];
@@ -86,13 +86,13 @@ fn test_table_map_io() {
     let deserialized = TableMap::deserialize(&read_buffer);
 
     // Step 7: Assertions
-    assert_eq!(deserialized.no_of_tables, 2);
-    let users_entry = deserialized.map.get("users").unwrap();
+    assert_eq!(deserialized.no_of_tables(), 2);
+    let users_entry = deserialized.map().get("users").unwrap();
     assert_eq!(users_entry.oid(), 1);
     assert_eq!(users_entry.columns(), 3);
     assert_eq!(users_entry.no_of_cols_in_primary_key(), 1);
 
-    let orders_entry = deserialized.map.get("orders").unwrap();
+    let orders_entry = deserialized.map().get("orders").unwrap();
     assert_eq!(orders_entry.oid(), 2);
     assert_eq!(orders_entry.columns(), 5);
     assert_eq!(orders_entry.no_of_cols_in_primary_key(), 2);
@@ -179,7 +179,7 @@ fn test_column_map_io() {
     assert!(name.is_nullable());
 
     // Step 8: Clean up
-    // IOEngine::delete_db(db_name).unwrap();
+    IOEngine::delete_db(db_name).unwrap();
 }
 
 #[test]
@@ -198,9 +198,9 @@ fn test_insert_and_serialize_deserialize_ref_map() {
     }
 
     let mut buffer = [0u8; REF_PAGE_SIZE as usize];
-    ref_map.serialize(&mut buffer).unwrap();
+    ref_map.serialize(&mut buffer);
 
-    let deserialized = RefMap::deserialize(&buffer).unwrap();
+    let deserialized = RefMap::deserialize(&buffer);
 
     assert_eq!(deserialized.no_of_ref(), 5);
     let entry = &deserialized.map()[0];

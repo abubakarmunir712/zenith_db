@@ -24,6 +24,18 @@ pub enum CatalogError {
 
     /// Occurs when refernce page is full
     SysMaxRefPerPageLimitExceeded,
+
+    /// Occurs when a table with the same name already exists in the database.
+    TableAlreadyExists,
+
+    /// Occurs when a table does not exist.
+    TableDoesNotExist,
+
+    /// Occurs when a column with the same name already exists in the table.
+    ColumnAlreadyExists,
+
+    /// Occurs when a column does not exist in the table.
+    ColumnDoesNotExist,
 }
 
 #[rustfmt::skip]
@@ -39,6 +51,10 @@ impl CatalogError {
             CatalogError::TableNameLengthLimitExceeded => "Table name length limit exceeded.",
             CatalogError::ColumnNameLengthLimitExceeded => "Column name length limit exceeded.",
             CatalogError::SysMaxRefPerPageLimitExceeded=>"Maximum number of refernces in a page exceeded",
+            CatalogError::TableAlreadyExists => "A table with the same name already exists in the database.",
+            CatalogError::TableDoesNotExist => "The specified table does not exist in the database.",
+            CatalogError::ColumnAlreadyExists => "A column with the same name already exists in the table.",
+            CatalogError::ColumnDoesNotExist => "The specified column does not exist in the table.",
         }
 
     }

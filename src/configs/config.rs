@@ -20,4 +20,5 @@ pub mod Config {
     pub const CATLOG_PAGE_SIZE: u16 = 32768;
     pub const REF_PAGE_SIZE: u16 = 32768;
     pub const PAGE_BUF_CAP: u16 = 16384;
+    pub const CATLOG_BUF_CAP: u16 = 1000;
 }
