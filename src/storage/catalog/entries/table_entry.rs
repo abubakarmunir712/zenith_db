@@ -7,18 +7,12 @@ pub struct TableEntry {
     table_name: String,
     oid: u16,
     columns: u16,
-    col_map_pg_num: u32,
     no_of_cols_in_primary_key: u8,
+    no_of_foregin_key_constraints: u8,
 }
 
 impl TableEntry {
-    pub fn new(
-        table_name: String,
-        oid: u16,
-        columns: u16,
-        col_map_pg_num: u32,
-        no_of_cols_in_primary_key: u8,
-    ) -> Result<Self, String> {
+    pub fn new(table_name: String, oid: u16) -> Result<Self, String> {
         if table_name.len() > MAX_TABLE_NAME_LENGTH {
             return Err(CatalogError::TableNameLengthLimitExceeded
                 .message()
@@ -27,38 +21,35 @@ impl TableEntry {
         Ok(Self {
             table_name,
             oid,
-            columns,
-            col_map_pg_num,
-            no_of_cols_in_primary_key,
+            columns: 0,
+            no_of_cols_in_primary_key: 0,
+            no_of_foregin_key_constraints: 0,
         })
     }
 
     pub fn serialize(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(72);
+        let mut bytes = Vec::with_capacity(70);
 
-        // Serialize table_name
+        // table_name (max 63 bytes)
         let name_bytes = self.table_name.as_bytes();
         let name_len = name_bytes.len();
-
-        bytes.push(name_len as u8); // First byte = length
+        bytes.push(name_len as u8);
         bytes.extend_from_slice(&name_bytes[..name_len]);
-
-        // Pad remaining to make it 63 bytes total
         for _ in name_len..63 {
             bytes.push(0);
         }
 
-        // Serialize oid (2 bytes)
+        // oid (2 bytes)
         bytes.extend_from_slice(&self.oid.to_le_bytes());
 
-        // Serialize columns (2 bytes)
+        // columns (2 bytes)
         bytes.extend_from_slice(&self.columns.to_le_bytes());
 
-        // Serialize col_map_pg_num (4 bytes)
-        bytes.extend_from_slice(&self.col_map_pg_num.to_le_bytes());
-
-        // Serialize no_of_cols_in_primary_key (1 byte)
+        // no_of_cols_in_primary_key (1 byte)
         bytes.push(self.no_of_cols_in_primary_key);
+
+        // no_of_foregin_key_constraints (1 byte)
+        bytes.push(self.no_of_foregin_key_constraints);
 
         bytes
     }
@@ -70,15 +61,15 @@ impl TableEntry {
 
         let oid = u16::from_le_bytes([data[64], data[65]]);
         let columns = u16::from_le_bytes([data[66], data[67]]);
-        let col_map_pg_num = u32::from_le_bytes([data[68], data[69], data[70], data[71]]);
-        let no_of_cols_in_primary_key = data[72];
+        let no_of_cols_in_primary_key = data[68];
+        let no_of_foregin_key_constraints = data[69];
 
         Self {
             table_name,
             oid,
             columns,
-            col_map_pg_num,
             no_of_cols_in_primary_key,
+            no_of_foregin_key_constraints,
         }
     }
 
@@ -92,17 +83,18 @@ impl TableEntry {
     }
 
     pub fn columns(&self) -> u16 {
+     
+     
         self.columns
-    }
-
-    pub fn col_map_pg_num(&self) -> u32 {
-        self.col_map_pg_num
     }
 
     pub fn no_of_cols_in_primary_key(&self) -> u8 {
         self.no_of_cols_in_primary_key
     }
 
+    pub fn no_of_foregin_key_constraints(&self) -> u8 {
+        self.no_of_cols_in_primary_key
+    }
     // Setters
     pub fn set_table_name(&mut self, name: String) {
         self.table_name = name;
@@ -112,15 +104,20 @@ impl TableEntry {
         self.oid = oid;
     }
 
-    pub fn set_columns(&mut self, cols: u16) {
-        self.columns = cols;
+    pub fn increase_columns(&mut self) {
+        self.columns +=1;
     }
 
-    pub fn set_col_map_pg_num(&mut self, page_num: u32) {
-        self.col_map_pg_num = page_num;
+    pub fn decrease_columns(&mut self) {
+        self.columns -=1;
     }
 
-    pub fn set_no_of_cols_in_primary_key(&mut self, count: u8) {
-        self.no_of_cols_in_primary_key = count;
+    pub fn increase_no_of_cols_in_pk(&mut self) {
+        self.no_of_cols_in_primary_key +=1;
+    }
+
+    pub fn decrease_no_of_cols_in_pk(&mut self) {
+        self.no_of_cols_in_primary_key -=1;
     }
 }
+

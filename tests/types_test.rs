@@ -492,7 +492,6 @@ fn test_text_value_below_min_size() {
 
 // ------ Edge case tests ------
 
-
 #[test]
 fn test_varchar_empty_value() {
     let varchar_field = VARCHAR::new(10, " ").unwrap();
@@ -525,17 +524,14 @@ fn create_column_entry(
     is_primary_key: bool,
     is_foreign_key: bool,
 ) -> ColumnEntry {
-    ColumnEntry {
-        column_name: "test_column".to_string(),
-        oid: 1,
-        datatype,
-        max_size,
-        null,
-        unique,
-        is_primary_key,
-        is_foreign_key,
-        is_referenced: false,
-    }
+    let mut col = ColumnEntry::new("test_column".to_string(), 1, datatype, max_size).unwrap();
+    if is_foreign_key {
+        col.make_foreign();
+    };
+    if is_primary_key {
+        col.make_primary();
+    };
+    col
 }
 
 // Test serialization and deserialization for each TypedValue variant
@@ -751,4 +747,3 @@ fn test_typed_value_decimal_negative() {
         _ => panic!("Expected DECIMAL variant"),
     }
 }
-

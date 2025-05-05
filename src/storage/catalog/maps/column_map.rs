@@ -22,7 +22,7 @@ impl ColumnMap {
 
     pub fn create_column(&mut self, column_entry: ColumnEntry) -> Result<(), &str> {
         self.map
-            .insert(column_entry.column_name.clone(), column_entry);
+            .insert(column_entry.column_name().to_string(), column_entry);
         self.no_of_columns += 1;
         Ok(())
     }
@@ -60,7 +60,7 @@ impl ColumnMap {
         for _ in 0..no_of_columns {
             let entry = ColumnEntry::deserialize(&buffer[offset..offset + 76]);
             offset += 76;
-            map.insert(entry.column_name.clone(), entry);
+            map.insert(entry.column_name().to_string(), entry);
         }
 
         Self {

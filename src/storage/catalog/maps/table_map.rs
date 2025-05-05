@@ -60,7 +60,7 @@ impl TableMap {
 
         for _ in 0..no_of_tables {
             let entry = TableEntry::deserialize(&buffer[offset..]);
-            offset += 73;
+            offset += 70;
             map.insert(entry.table_name().to_string(), entry);
         }
 

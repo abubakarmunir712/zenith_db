@@ -71,15 +71,15 @@ impl TypedValue {
     ///
     #[rustfmt::skip]
     pub fn from_bytes(bytes: &[u8], column_entry: &ColumnEntry) -> Self {
-        match &column_entry.datatype {
-            DataType::CHAR => TypedValue::CHAR(CHAR::from_bytes(bytes, column_entry.max_size)),
-            DataType::VARCHAR => TypedValue::VARCHAR(VARCHAR::from_bytes(bytes, column_entry.max_size)),
+        match &column_entry.datatype() {
+            DataType::CHAR => TypedValue::CHAR(CHAR::from_bytes(bytes, column_entry.max_size())),
+            DataType::VARCHAR => TypedValue::VARCHAR(VARCHAR::from_bytes(bytes, column_entry.max_size())),
             DataType::BOOL => TypedValue::BOOL(BOOL::from_bytes(bytes)),
             DataType::INT => TypedValue::INT(INT::from_bytes(bytes)),
             DataType::BIGINT => TypedValue::BIGINT(BIGINT::from_bytes(bytes)),
             DataType::SMALLINT => TypedValue::SMALLINT(SMALLINT::from_bytes(bytes)),
             DataType::TINYINT => TypedValue::TINYINT(TINYINT::from_bytes(bytes)),
-            DataType::DECIMAL => TypedValue::DECIMAL(DECIMAL::from_bytes(bytes,column_entry.max_size / 100,column_entry.max_size % 100,)),
+            DataType::DECIMAL => TypedValue::DECIMAL(DECIMAL::from_bytes(bytes,column_entry.max_size() / 100,column_entry.max_size() % 100,)),
             DataType::DOUBLE => TypedValue::DOUBLE(DOUBLE::from_bytes(bytes)),
             DataType::FLOAT => TypedValue::FLOAT(FLOAT::from_bytes(bytes)),
             DataType::DATE => TypedValue::DATE(DATE::from_bytes(bytes)),

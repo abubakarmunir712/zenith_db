@@ -21,6 +21,9 @@ pub enum CatalogError {
 
     /// Occurs when the length of the column name exceeds the allowed limit.
     ColumnNameLengthLimitExceeded,
+
+    /// Occurs when refernce page is full
+    SysMaxRefPerPageLimitExceeded,
 }
 
 #[rustfmt::skip]
@@ -35,6 +38,7 @@ impl CatalogError {
             CatalogError::SysMaxTablesInDBLimitExceeded => "Maximum number of tables in the database exceeded.",
             CatalogError::TableNameLengthLimitExceeded => "Table name length limit exceeded.",
             CatalogError::ColumnNameLengthLimitExceeded => "Column name length limit exceeded.",
+            CatalogError::SysMaxRefPerPageLimitExceeded=>"Maximum number of refernces in a page exceeded",
         }
 
     }
