@@ -1,5 +1,5 @@
 use crate::configs::config::Config::{
-    CATLOG_PAGE_SIZE, FSM_PAGE_SIZE, INDEX_PAGE_SIZE, PAGE_SIZE, REF_PAGE_SIZE,
+    BUCKET_SIZE, CATLOG_PAGE_SIZE, FSM_PAGE_SIZE, INDEX_PAGE_SIZE, PAGE_SIZE, REF_PAGE_SIZE
 };
 pub enum PageType {
     DataPage,

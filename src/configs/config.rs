@@ -14,6 +14,7 @@
 pub mod Config {
     pub const DB_PATH: &str = "";
     pub const PAGE_SIZE: u32 = 4096;
+    pub const BUCKET_SIZE: u32 = 2048;
     pub const PAGE_HEADER_SIZE: u16 = 20;
     pub const INDEX_PAGE_SIZE: u16 = 4096;
     pub const FSM_PAGE_SIZE: u16 = 4096;
