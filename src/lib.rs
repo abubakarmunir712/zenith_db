@@ -13,9 +13,14 @@ pub mod storage {
         pub mod page_buffer;
         pub mod catalog_buffer;
     }
+    pub mod record;
 }
 pub mod utils;
 pub mod configs;
-pub mod enums;
+pub mod enums{
+    pub mod types;
+    pub mod errors;
+}
 pub mod types;
 pub mod oid;
+pub mod indexing;

@@ -12,3 +12,4 @@ pub mod date;
 pub mod time;
 pub mod date_time;
 pub mod varchar;
+pub mod null;

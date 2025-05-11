@@ -1,5 +1,5 @@
 use crate::configs::config::Config::DB_PATH;
-use crate::enums::page_types::PageType;
+use crate::enums::types::page_types::PageType;
 use crate::utils::io_utils::*;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};

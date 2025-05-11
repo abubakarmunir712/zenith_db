@@ -1,5 +1,5 @@
 use crate::configs::types_config::TypesConfig::{MAX_CHAR_SIZE, MIN_CHAR_SIZE};
-use crate::enums::type_errors::StringError;
+use crate::enums::errors::type_errors::StringError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

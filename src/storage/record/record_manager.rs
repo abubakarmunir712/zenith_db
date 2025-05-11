@@ -1,4 +1,4 @@
-use crate::enums::datatypes::DataType;
+use crate::enums::types::datatypes::DataType;
 use crate::storage::catalog::catalog::CatalogTable;
 use crate::storage::page::page::Page;
 use crate::storage::record::record::Record;

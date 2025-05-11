@@ -2,7 +2,7 @@ use ZenithDB::configs::config::Config::DB_PATH;
 use ZenithDB::storage::io::file_io::IOEngine;
 use std::fs::remove_dir_all;
 use std::path::{Path, PathBuf};
-use ZenithDB::enums::page_types::PageType;
+use ZenithDB::enums::types::page_types::PageType;
 
 #[test]
 fn test_db_operations() {

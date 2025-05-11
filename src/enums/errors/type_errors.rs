@@ -150,3 +150,15 @@ impl BoolError {
         }
     }
 }
+
+pub enum ValidationError {
+    CannotBeNull,
+}
+
+impl ValidationError {
+    pub fn message(&self) -> &str {
+        match self {
+            ValidationError::CannotBeNull => "Null not allowed",
+        }
+    }
+}

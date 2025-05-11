@@ -1,6 +1,6 @@
 use crate::{
     configs::db_internal_configs::DbConfigs::MAX_TABLE_NAME_LENGTH,
-    enums::catalog_errors::CatalogError,
+    enums::errors::catalog_errors::CatalogError,
 };
 
 pub struct TableEntry {

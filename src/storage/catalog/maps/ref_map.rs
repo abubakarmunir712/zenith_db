@@ -1,7 +1,7 @@
 use super::super::entries::ref_entry::RefEntry;
 use crate::{
     configs::{config::Config::REF_PAGE_SIZE, db_internal_configs::DbConfigs::MAX_REF_SIZE},
-    enums::catalog_errors::CatalogError,
+    enums::errors::catalog_errors::CatalogError,
 };
 
 pub struct RefMap {

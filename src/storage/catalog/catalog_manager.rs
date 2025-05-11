@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::{
     configs::db_internal_configs::DbConfigs::{MAX_COLUMNS_LIMIT, MAX_TABLES_LIMIT},
-    enums::{
+    enums::types::{
         catalog_types::{CatalogData, CatalogType},
         datatypes::DataType,
     },
@@ -100,7 +100,7 @@ impl CatalogManager {
         Ok(oid)
     }
 
-    pub fn delete_table( table_name: &str, table_map: &mut TableMap) -> u16 {
+    pub fn delete_table(table_name: &str, table_map: &mut TableMap) -> u16 {
         let oid = table_map.delete_table(table_name);
         let bitmask = table_map.table_oid_bitmap_mut();
         oid_manager::undelete_oid(bitmask, oid);

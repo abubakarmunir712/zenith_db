@@ -1,4 +1,4 @@
-use crate::enums::type_errors::StringError;
+use crate::enums::errors::type_errors::StringError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

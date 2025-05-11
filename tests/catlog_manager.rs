@@ -1,15 +1,12 @@
 use ZenithDB::{
     configs::config::Config::CATLOG_PAGE_SIZE,
-    enums::{
+    enums::types::{
         catalog_types::{CatalogData, CatalogType},
         page_types::PageType,
     },
     storage::{
         buffer::catalog_buffer::CatalogBuffer,
-        catalog::{
-            catalog_manager::CatalogManager, entries::table_entry::TableEntry,
-            maps::table_map::TableMap,
-        },
+        catalog::{catalog_manager::CatalogManager, maps::table_map::TableMap},
         io::file_io::IOEngine,
     },
 };

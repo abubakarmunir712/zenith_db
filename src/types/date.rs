@@ -1,4 +1,4 @@
-use crate::enums::type_errors::DateTimeError;
+use crate::enums::errors::type_errors::DateTimeError;
 
 use serde::{Deserialize, Serialize};
 

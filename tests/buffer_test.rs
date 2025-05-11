@@ -1,8 +1,8 @@
-use ZenithDB::configs::config::Config::{CATLOG_BUF_CAP, CATLOG_PAGE_SIZE};
-use ZenithDB::enums::cascading_type::ForeignKeyAction;
-use ZenithDB::enums::catalog_types::{CatalogData, CatalogType};
-use ZenithDB::enums::datatypes::DataType;
-use ZenithDB::enums::page_types::PageType;
+use ZenithDB::configs::config::Config::CATLOG_PAGE_SIZE;
+use ZenithDB::enums::types::cascading_type::ForeignKeyAction;
+use ZenithDB::enums::types::catalog_types::{CatalogData, CatalogType};
+use ZenithDB::enums::types::datatypes::DataType;
+use ZenithDB::enums::types::page_types::PageType;
 use ZenithDB::storage::buffer::catalog_buffer::CatalogBuffer;
 use ZenithDB::storage::buffer::page_buffer::PageBuffer;
 use ZenithDB::storage::catalog::entries::column_entry::ColumnEntry;
@@ -436,7 +436,7 @@ fn test_catalog_multithreaded_access() {
             let page = page.read().unwrap();
             if let CatalogData::TableMap(map) = &*page {
                 let table = map.get_table(&format!("table_{}", i)).unwrap();
-                println!("{}",i);
+                println!("{}", i);
                 assert_eq!(table.columns(), 1);
             } else {
                 panic!("Expected TableMap");

@@ -1,7 +1,7 @@
 /// Represents a DOUBLE (64-bit floating point) data type.
 use serde::{Deserialize, Serialize, de::value};
 
-use crate::enums::type_errors::NumericError;
+use crate::enums::errors::type_errors::NumericError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DOUBLE {

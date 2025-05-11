@@ -1,7 +1,7 @@
 use ZenithDB::configs::types_config::TypesConfig::{MAX_TEXT_SIZE, MIN_TEXT_SIZE};
-use ZenithDB::enums::datatypes::DataType;
-use ZenithDB::enums::type_errors::*;
-use ZenithDB::enums::typed_value::TypedValue;
+use ZenithDB::enums::errors::type_errors::*;
+use ZenithDB::enums::types::datatypes::DataType;
+use ZenithDB::enums::types::typed_value::TypedValue;
 use ZenithDB::storage::catalog::entries::column_entry::ColumnEntry;
 use ZenithDB::types::big_int::BIGINT;
 use ZenithDB::types::bool::BOOL;

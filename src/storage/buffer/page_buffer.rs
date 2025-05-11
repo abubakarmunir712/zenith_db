@@ -1,6 +1,6 @@
 use crate::configs::config::Config::{PAGE_BUF_CAP, PAGE_SIZE};
 use crate::storage::io::file_io::IOEngine;
-use crate::{enums::page_types::PageType, storage::page::page::Page};
+use crate::{enums::types::page_types::PageType, storage::page::page::Page};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard},

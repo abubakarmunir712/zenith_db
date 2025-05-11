@@ -8,6 +8,7 @@ pub struct ColumnMap {
     no_of_columns: u16,
     column_oid_bitmap: [u8; MAX_COLUMNS_LIMIT / 8],
     map: HashMap<String, ColumnEntry>,
+    ord_map: Vec<String>,
 }
 
 impl ColumnMap {
@@ -17,12 +18,14 @@ impl ColumnMap {
             no_of_columns: 0,
             column_oid_bitmap,
             map: HashMap::new(),
+            ord_map: Vec::new(),
         }
     }
 
     pub fn create_column(&mut self, column_entry: ColumnEntry) {
-        self.map
-            .insert(column_entry.column_name().to_string(), column_entry);
+        let col_name = column_entry.column_name().to_string();
+        self.map.insert(col_name.to_string(), column_entry);
+        self.ord_map.push(col_name.to_string());
         self.no_of_columns += 1;
     }
 
@@ -43,7 +46,8 @@ impl ColumnMap {
 
         // Write each ColumnEntry
         let mut offset = bitmap_end;
-        for entry in self.map.values() {
+        for col_name in &self.ord_map {
+            let entry = self.map.get(col_name).unwrap();
             let serialized = entry.serialize();
             buffer[offset..offset + serialized.len()].copy_from_slice(&serialized);
             offset += serialized.len();
@@ -61,17 +65,21 @@ impl ColumnMap {
 
         let mut offset = bitmap_end;
         let mut map = HashMap::new();
+        let mut map_ord: Vec<String> = Vec::new();
 
         for _ in 0..no_of_columns {
             let entry = ColumnEntry::deserialize(&buffer[offset..offset + 76]);
+            let col_name = entry.column_name().to_string();
             offset += 76;
-            map.insert(entry.column_name().to_string(), entry);
+            map.insert(col_name.clone(), entry);
+            map_ord.push(col_name.to_string());
         }
 
         Self {
             no_of_columns,
             column_oid_bitmap,
             map,
+            ord_map: map_ord,
         }
     }
 
@@ -98,5 +106,9 @@ impl ColumnMap {
 
     pub fn map(&self) -> &HashMap<String, ColumnEntry> {
         &self.map
+    }
+
+    pub fn ord_map(&self) -> &Vec<String> {
+        &self.ord_map
     }
 }

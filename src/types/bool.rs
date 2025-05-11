@@ -1,7 +1,7 @@
 // Define a struct `BOOL` to represent a boolean value.
 use serde::{Deserialize, Serialize};
 
-use crate::enums::type_errors::BoolError;
+use crate::enums::errors::type_errors::BoolError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BOOL {

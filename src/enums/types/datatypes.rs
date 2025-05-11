@@ -1,4 +1,4 @@
-use crate::configs::types_config::TypesConfig::MAX_TEXT_SIZE;
+use crate::{configs::types_config::TypesConfig::MAX_TEXT_SIZE, types::null::NULL};
 
 pub enum DataType {
     CHAR,     // Fixed-length character type
@@ -15,6 +15,7 @@ pub enum DataType {
     TIME,     // Time type
     DATETIME, // Combined Date and Time type
     TEXT,     // Text type (longer string)
+    NULL,
 }
 
 impl DataType {
@@ -35,6 +36,7 @@ impl DataType {
             DataType::TIME => 11,
             DataType::DATETIME => 12,
             DataType::TEXT => 13,
+            DataType::NULL => 14,
         }
     }
 
@@ -56,7 +58,8 @@ impl DataType {
             11 => DataType::TIME,
             12 => DataType::DATETIME,
             13 => DataType::TEXT,
-            _ => unreachable!(),
+            14 => DataType::NULL,
+            _=>unreachable!()
         }
     }
 
@@ -76,6 +79,7 @@ impl DataType {
             DataType::TIME => 3,
             DataType::DATETIME => 7,
             DataType::TEXT => MAX_TEXT_SIZE,
+            DataType::NULL => 0,
             _ => unreachable!(),
         }
     }

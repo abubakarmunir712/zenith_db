@@ -1,8 +1,5 @@
 use super::super::entries::table_entry::TableEntry;
-use crate::{
-    configs::{config::Config::CATLOG_PAGE_SIZE, db_internal_configs::DbConfigs::MAX_TABLES_LIMIT},
-    enums::catalog_errors::CatalogError,
-};
+use crate::configs::db_internal_configs::DbConfigs::MAX_TABLES_LIMIT;
 use std::collections::HashMap;
 
 pub struct TableMap {
@@ -27,7 +24,7 @@ impl TableMap {
         self.no_of_tables += 1;
     }
 
-    pub fn delete_table(&mut self, table_name: &str)->u16 {
+    pub fn delete_table(&mut self, table_name: &str) -> u16 {
         let entry = self.map.remove(table_name).unwrap();
         self.no_of_tables -= 1;
         entry.oid()

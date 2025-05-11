@@ -1,6 +1,6 @@
 use crate::{
     configs::db_internal_configs::DbConfigs::MAX_COLUMNS_IN_FOREIGN_KEY,
-    enums::{cascading_type::ForeignKeyAction, catalog_errors::CatalogError},
+    enums::{errors::catalog_errors::CatalogError, types::cascading_type::ForeignKeyAction},
 };
 
 // Future Improvement:

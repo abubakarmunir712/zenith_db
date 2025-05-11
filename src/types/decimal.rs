@@ -1,4 +1,4 @@
-use crate::enums::type_errors::{DecimalError, NumericError};
+use crate::enums::errors::type_errors::{DecimalError, NumericError};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

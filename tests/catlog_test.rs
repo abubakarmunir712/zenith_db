@@ -1,9 +1,9 @@
 use ZenithDB::configs::config::Config::{CATLOG_PAGE_SIZE, REF_PAGE_SIZE};
 use ZenithDB::configs::db_internal_configs::DbConfigs::MAX_REF_SIZE;
-use ZenithDB::enums::cascading_type::ForeignKeyAction;
-use ZenithDB::enums::catalog_errors::CatalogError;
-use ZenithDB::enums::datatypes::DataType;
-use ZenithDB::enums::page_types::PageType;
+use ZenithDB::enums::errors::catalog_errors::CatalogError;
+use ZenithDB::enums::types::cascading_type::ForeignKeyAction;
+use ZenithDB::enums::types::datatypes::DataType;
+use ZenithDB::enums::types::page_types::PageType;
 use ZenithDB::storage::catalog::entries::column_entry::ColumnEntry;
 use ZenithDB::storage::catalog::entries::ref_entry::{RefEntry, RefPair};
 use ZenithDB::storage::catalog::entries::table_entry::TableEntry;
@@ -215,7 +215,6 @@ fn test_insert_and_serialize_deserialize_ref_map() {
         entry.cascading_type().to_oid(),
         ForeignKeyAction::Cascade.to_oid()
     );
-
 
     let entry = &deserialized.map()[1];
     let pairs = entry.references();

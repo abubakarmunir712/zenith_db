@@ -1,4 +1,4 @@
-use crate::enums::{catalog_errors::CatalogError, datatypes::DataType};
+use crate::enums::{errors::catalog_errors::CatalogError, types::datatypes::DataType};
 
 pub struct ColumnEntry {
     column_name: String,

@@ -1,4 +1,4 @@
-use crate::enums::datatypes::DataType;
+use crate::enums::types::datatypes::DataType;
 use crate::storage::catalog::entries::column_entry::ColumnEntry;
 use crate::types::big_int::BIGINT;
 use crate::types::bool::BOOL;
@@ -9,6 +9,7 @@ use crate::types::decimal::DECIMAL;
 use crate::types::double::DOUBLE;
 use crate::types::float::FLOAT;
 use crate::types::int::INT;
+use crate::types::null::NULL;
 use crate::types::small_int::SMALLINT;
 use crate::types::text::TEXT;
 use crate::types::time::TIME;
@@ -30,6 +31,7 @@ pub enum TypedValue {
     TIME(TIME),         // Time type
     DATETIME(DATETIME), // Combined Date and Time type
     TEXT(TEXT),         // Text type (longer string)
+    NULL(NULL)          // Null Type
 }
 
 impl TypedValue {
@@ -54,6 +56,7 @@ impl TypedValue {
             TypedValue::TIME(t) => t.to_bytes(),
             TypedValue::DATETIME(dt) => dt.to_bytes(),
             TypedValue::TEXT(t) => t.to_bytes(),
+            TypedValue::NULL(_)=>Vec::new()
         }
     }
 
@@ -86,7 +89,50 @@ impl TypedValue {
             DataType::TIME => TypedValue::TIME(TIME::from_bytes(bytes)),
             DataType::DATETIME => TypedValue::DATETIME(DATETIME::from_bytes(bytes)),
             DataType::TEXT => TypedValue::TEXT(TEXT::from_bytes(bytes)),
+            DataType::NULL=>TypedValue::NULL(NULL::new())
         }
         
+    }
+
+    pub fn new(value:&str, column_entry: &ColumnEntry)->Result<Self,String>{
+        let typevalue = match &column_entry.datatype(){
+            DataType::CHAR =>TypedValue::CHAR(CHAR::new(column_entry.max_size(), value)?),
+            DataType::VARCHAR => TypedValue::VARCHAR(VARCHAR::new(column_entry.max_size(), value)?),
+            DataType::BOOL => TypedValue::BOOL(BOOL::new( value)?),
+            DataType::INT =>  TypedValue::INT(INT::new( value)?),
+            DataType::BIGINT =>  TypedValue::BIGINT(BIGINT::new( value)?),
+            DataType::SMALLINT =>  TypedValue::SMALLINT(SMALLINT::new( value)?),
+            DataType::TINYINT =>  TypedValue::TINYINT(TINYINT::new( value)?),
+            DataType::DECIMAL =>  TypedValue::DECIMAL(DECIMAL::new( value,column_entry.max_size() / 100,column_entry.max_size() % 100)?),
+            DataType::DOUBLE => TypedValue::DOUBLE(DOUBLE::new(value)?),
+            DataType::FLOAT => TypedValue::FLOAT(FLOAT::new(value)?),
+            DataType::DATE => TypedValue::DATE(DATE::new(value)?),
+            DataType::TIME =>TypedValue::TIME(TIME::new(value)?),
+            DataType::DATETIME =>TypedValue::DATETIME(DATETIME::new(value)?),
+            DataType::TEXT => TypedValue::TEXT(TEXT::new(value)?),
+            DataType::NULL=>TypedValue::NULL(NULL::new())
+        };
+        Ok(typevalue)
+    }
+
+    pub fn to_string(&self)->String{
+        match self{
+            TypedValue::CHAR(c) => c.value().to_string(),
+            TypedValue::VARCHAR(v) => v.value().to_string(),
+            TypedValue::BOOL(b) => b.value().to_string(),
+            TypedValue::INT(i) => i.value().to_string(),
+            TypedValue::BIGINT(b) => b.value().to_string(),
+            TypedValue::SMALLINT(s) => s.value().to_string(),
+            TypedValue::TINYINT(t) => t.value().to_string(),
+            TypedValue::DECIMAL(d) => d.value_string(),
+            TypedValue::DOUBLE(d) => d.value().to_string(),
+            TypedValue::FLOAT(f) => f.value().to_string(),
+            TypedValue::DATE(d) => d.value(),
+            TypedValue::TIME(t) => t.value(),
+            TypedValue::DATETIME(dt) => dt.value(),
+            TypedValue::TEXT(t) => t.value().to_string(),
+            TypedValue::NULL(_)=>"Null".to_string()
+        }
+
     }
 }

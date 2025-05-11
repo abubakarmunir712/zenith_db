@@ -1,7 +1,7 @@
-use crate::configs::config::Config::{CATLOG_BUF_CAP, CATLOG_PAGE_SIZE, PAGE_BUF_CAP, PAGE_SIZE};
-use crate::enums::catalog_types::CatalogData;
-use crate::enums::catalog_types::CatalogType;
-use crate::enums::page_types::PageType;
+use crate::configs::config::Config::{CATLOG_BUF_CAP, CATLOG_PAGE_SIZE};
+use crate::enums::types::catalog_types::CatalogData;
+use crate::enums::types::catalog_types::CatalogType;
+use crate::enums::types::page_types::PageType;
 use crate::storage::io::file_io::IOEngine;
 use std::{
     collections::{HashMap, HashSet, VecDeque},

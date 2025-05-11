@@ -1,7 +1,7 @@
 /// Represents a TINYINT (8-bit signed integer) data type.
 use serde::{Deserialize, Serialize};
 
-use crate::enums::type_errors::NumericError;
+use crate::enums::errors::type_errors::NumericError;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TINYINT {
