@@ -44,7 +44,7 @@ impl PageManager {
     /// Returns a list of deleted slots as a `Vec<(u16, u16)>`.
     /// - Each tuple is: (record_offset, total_size of the deleted record).
     /// - Useful for finding reusable space in the page.
-    pub fn get_deleted_slots_offsets(page: &mut Page) -> Vec<(u16, u16)> {
+    pub fn get_deleted_slots_offsets(page: &Page) -> Vec<(u16, u16)> {
         let mut slot_offsets = Vec::new();
         for slot in page.slot_table() {
             if slot.is_deleted() == 1 {
@@ -58,7 +58,7 @@ impl PageManager {
     /// - Each tuple is: (offset, size of available space).
     /// - Includes both deleted slots and actual contiguous free space between
     ///   the free_space_offset and the slot_table_offset.
-    pub fn free_space_table(page: &mut Page) -> Vec<(u16, u16)> {
+    pub fn free_space_table(page: &Page) -> Vec<(u16, u16)> {
         let mut slot_offsets = Self::get_deleted_slots_offsets(page);
         let page_header = page.page_header();
         if page_header.free_space_offset() < page_header.slot_table_offset() {
@@ -68,5 +68,14 @@ impl PageManager {
             ))
         }
         slot_offsets
+    }
+
+    pub fn get_slot_by_offset(page: &Page, offset: u16) -> Option<&Slot> {
+        for slot in page.slot_table() {
+            if slot.record_offset() == offset {
+                return Some(slot);
+            }
+        }
+        return None;
     }
 }
