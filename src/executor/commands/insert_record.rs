@@ -31,6 +31,7 @@ pub fn insert_record(
     let t_map = c_manager.get_table_map(db_name, true)?;
     let t_map = t_map.read().map_err(|e| e.to_string())?;
     let mut primary = String::new();
+    let mut p_id = 0;
     let mut p_idx = 0;
     let mut pg_no = 0;
     if let CatalogData::TableMap(t_map) = &*t_map {
@@ -52,8 +53,8 @@ pub fn insert_record(
                 let col_e = c_map.get_column(&col).unwrap();
                 if col_e.is_primary_key() {
                     primary = col.to_string();
+                    p_id = col_e.oid()
                 }
-                // println!("{}", col_e.is_primary_key());
                 p_idx = r_cols.len();
                 let idx = columns.iter().position(|x| x == col);
                 if idx.is_none() {
@@ -64,21 +65,19 @@ pub fn insert_record(
                 }
             }
 
-            // if primary != ""
-            //     && HashBucketManager::does_key_exists(
-            //         &r_cols[p_idx],
-            //         db_name,
-            //         t_oid as u32,
-            //         &primary,
-            //         c_map,
-            //         p_buffer,
-            //         &index_buffer,
-            //     )?
-            // {
-            //     return Err("Key already exixts".to_string());
-            // }
-
             let record = Record::new(r_cols.clone(), c_map)?;
+            let exists = HashBucketManager::does_key_exists(
+                &r_cols[p_idx],
+                db_name,
+                t_oid as u32,
+                &primary,
+                c_map,
+                p_buffer,
+                &index_buffer,
+            )?;
+            if exists {
+                return Err("Key already exixts".to_string());
+            }
 
             pg_no =
                 IOEngine::calculate_total_pages(db_name, &t_oid.to_string(), PageType::DataPage)?
@@ -99,17 +98,16 @@ pub fn insert_record(
                 )?;
                 pg_no += 1;
             }
-            let b = BucketValue::new(pg_no, i_res.unwrap().1);
-            // if primary != "" {
-            //     HashBucketManager::add_value(
-            //         &r_cols[p_idx],
-            //         &b,
-            //         db_name,
-            //         &format!("{}_{}", t_oid, primary),
-            //         0,
-            //         &index_buffer,
-            //     )?;
-            // }
+            let b = BucketValue::new(pg_no, i_res.unwrap().0);
+            HashBucketManager::add_value(
+                &r_cols[p_idx],
+                &b,
+                db_name,
+                &format!("{}_{}", t_oid, p_id),
+                0,
+                &index_buffer,
+            )
+            .unwrap();
         }
         p_buffer.force_flush(db_name, &t_oid.to_string(), pg_no)?;
     }

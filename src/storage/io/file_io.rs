@@ -66,7 +66,7 @@ impl IOEngine {
             &[0u8; INDEX_PAGE_SIZE as usize],
             PageType::IndexPage,
         )?;
-        
+
         Ok(())
     }
 

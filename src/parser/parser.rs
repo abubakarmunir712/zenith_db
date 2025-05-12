@@ -204,6 +204,7 @@ fn parse_columns_values(input: &str) -> Result<(Vec<String>, Vec<String>), Strin
     // Trim whitespace and check basic structure
     let input = input.trim();
     if !input.starts_with('(') || !input.contains('{') || !input.ends_with('}') {
+        println!("{input}");
         return Err("Invalid input format: must start with '(' and end with '}'".to_string());
     }
 
