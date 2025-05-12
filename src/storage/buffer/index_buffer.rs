@@ -29,7 +29,8 @@ impl IndexBuffer {
         let mut is_overflow = is_overflow;
 
         // Load the head bucket
-        let head_page = self._get_page(db_name, table_column, is_overflow, current_page_no, false)?;
+        let head_page =
+            self._get_page(db_name, table_column, is_overflow, current_page_no, false)?;
         let mut head_bucket_guard = head_page.write().map_err(|e| e.to_string())?;
         let mut current_bucket: &mut HashBucket = &mut *head_bucket_guard;
 
@@ -58,12 +59,10 @@ impl IndexBuffer {
 
             // Move current_bucket to next one
             current_bucket = current_bucket.next_bucket.as_deref_mut().unwrap();
-          
         }
         // All overflow chain loaded
         drop(head_bucket_guard); // release lock before returning
         Ok(head_page)
-
     }
 }
 

@@ -11,7 +11,7 @@ use crate::{
             catalog_buffer::CatalogBuffer,
             index_buffer::{self, IndexBuffer},
         },
-        catalog::{catalog_manager::CatalogManager, maps::column_map::ColumnMap},
+        catalog::{catalog_manager::CatalogManager, maps::column_map::ColumnMap}, io::file_io::IOEngine,
     },
 };
 
@@ -100,8 +100,6 @@ pub fn make_primary(
                 // Extract column name before mutable borrow ends
                 let col_name = entry.column_name().to_owned();
 
-                drop(entry); 
-
                 // Now it's safe to immutably borrow c_map
                 HashBucketManager::create_index(
                     db_name,
@@ -110,9 +108,11 @@ pub fn make_primary(
                     c_map, // immutable borrow
                     index_buffer,
                 )?;
+
             }
         }
     }
+    c_buffer.force_flush(db_name, CatalogType::ColumnMap, t_oid as u32)?;
 
     Ok(())
 }

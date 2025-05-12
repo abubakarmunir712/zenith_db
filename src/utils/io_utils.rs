@@ -16,21 +16,21 @@ pub fn dir_exists(path: &Path) -> bool {
 }
 
 pub fn create_file(path: &Path) -> Result<(), String> {
-    File::create(path).map_err(|e| e.to_string());
+    File::create(path).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 pub fn create_dir(path: &Path) -> Result<(), String> {
-    fs::create_dir(path).map_err(|e| e.to_string());
+    fs::create_dir(path).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 pub fn remove_file(path: &Path) -> Result<(), String> {
-    fs::remove_file(path).map_err(|e| e.to_string());
+    fs::remove_file(path).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 pub fn remove_dir(path: &Path) -> Result<(), String> {
-    fs::remove_dir_all(path).map_err(|e| e.to_string());
+    fs::remove_dir_all(path).map_err(|e| e.to_string())?;
     Ok(())
 }

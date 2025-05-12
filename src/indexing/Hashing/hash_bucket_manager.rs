@@ -245,7 +245,6 @@ impl HashBucketManager {
         let mut records: Vec<Record> = Vec::new();
         let index = HashBucketManager::murmur_hash(key);
         let is_overflow = 0;
-        println!("-->{column_name}");
         let column_id = column_map.get_column(column_name).unwrap().oid();
         let combined_string = format!("{}_{}", table_id, column_id.to_string());
         let table_column: &str = &combined_string;
@@ -254,8 +253,7 @@ impl HashBucketManager {
         // Get the page and mark it dirty
         let page = buffer.get_page(db_name, table_column, is_overflow, index)?;
         let mut bucket = page.write().map_err(|e| e.to_string())?;
-
-        let mut bucket_ref: Option<&mut HashBucket> = Some(&mut bucket); // Get By Buffer later
+        let mut bucket_ref: Option<&mut HashBucket> = Some(&mut bucket);
 
         while let Some(b_ref) = bucket_ref {
             for i in 0..b_ref.value_count as usize {
