@@ -1,3 +1,5 @@
+use serde::de::value;
+
 use crate::storage::{
     catalog::maps::column_map::{self, ColumnMap},
     page::{page::Page, page_manager::PageManager},
@@ -42,5 +44,27 @@ impl RecordManager {
             ..slot.record_size() as usize + slot.record_offset() as usize];
         let record = Record::deserialize(bytes, column_map);
         record
+    }
+
+    pub fn get_records_by_value(
+        page: &Page,
+        value: &str,
+        column_name: &str,
+        column_map: &ColumnMap,
+    ) -> Vec<Record> {
+        let mut records: Vec<Record> = Vec::new();
+        let column_no = column_map.ord_map().iter().position(|x| x == column_name).unwrap();
+        for slot in page.slot_table() {
+            if slot.is_deleted() == 0 {
+                let bytes = &page.data()[slot.record_offset() as usize
+                    ..slot.record_size() as usize + slot.record_offset() as usize];
+                let record = Record::deserialize(bytes, column_map);
+                let col = record.columns()[column_no].to_string();
+                if col == value{
+                    records.push(record);
+                }
+            }
+        }
+        records
     }
 }
