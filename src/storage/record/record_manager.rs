@@ -53,18 +53,32 @@ impl RecordManager {
         column_map: &ColumnMap,
     ) -> Vec<Record> {
         let mut records: Vec<Record> = Vec::new();
-        let column_no = column_map.ord_map().iter().position(|x| x == column_name).unwrap();
+        let column_no = column_map
+            .ord_map()
+            .iter()
+            .position(|x| x == column_name)
+            .unwrap();
         for slot in page.slot_table() {
             if slot.is_deleted() == 0 {
                 let bytes = &page.data()[slot.record_offset() as usize
                     ..slot.record_size() as usize + slot.record_offset() as usize];
                 let record = Record::deserialize(bytes, column_map);
                 let col = record.columns()[column_no].to_string();
-                if col == value{
+                if col == value {
                     records.push(record);
                 }
             }
         }
         records
+    }
+
+    fn get_column_value(record: &Record, column_name: &str, column_map: &ColumnMap) -> String {
+        let column_no = column_map
+            .ord_map()
+            .iter()
+            .position(|x| x == column_name)
+            .unwrap();
+        let col = record.columns()[column_no].to_string();
+        col
     }
 }
