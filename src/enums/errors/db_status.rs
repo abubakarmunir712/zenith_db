@@ -4,7 +4,11 @@ pub enum DatabaseStatus {
     FileExistsInDatabase,
     DatabaseAlreadyExists,
     FileAlreadyExists,
-    PageNotFoundInFile
+    PageNotFoundInFile,
+    TableAlreadyExists,
+    ColumnNameUnique,
+    TableNotFound,
+    ColumnNotFound
 }
 
 impl DatabaseStatus {
@@ -16,6 +20,10 @@ impl DatabaseStatus {
             DatabaseStatus::DatabaseAlreadyExists => "Database already exists",
             DatabaseStatus::FileAlreadyExists => "File already exists",
             DatabaseStatus::PageNotFoundInFile => "Page not found in file",
+            DatabaseStatus::TableAlreadyExists=>"A table with this name already exists",
+            DatabaseStatus::ColumnNameUnique=>"Column name must be unique",
+            DatabaseStatus::TableNotFound=>"Table not found",
+            DatabaseStatus::ColumnNotFound=>"Column not found",
 
         }
     }

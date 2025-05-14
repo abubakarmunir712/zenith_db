@@ -171,4 +171,49 @@ impl PageBuffer {
         }
         Ok(())
     }
+
+    pub fn force_flush(
+        &self,
+        db_name: &str,
+        table_name: &str,
+        page_number: u32,
+    ) -> Result<(), String> {
+        let key = (db_name.to_string(), table_name.to_string(), page_number);
+
+        // Lock the pool to access the page
+        let pool_guard = self.pool.write().map_err(
+            |e: PoisonError<
+                RwLockWriteGuard<'_, HashMap<(String, String, u32), Arc<RwLock<Page>>>>,
+            >| { e.to_string() },
+        )?;
+
+        if pool_guard.contains_key(&key) {
+            self.flush_page(db_name, table_name, page_number, &pool_guard)?;
+
+            // Remove from dirty list
+            let mut dirty_guard = self.dirty_pages.write().map_err(
+                |e: PoisonError<RwLockWriteGuard<'_, HashSet<(String, String, u32)>>>| {
+                    e.to_string()
+                },
+            )?;
+            dirty_guard.remove(&key);
+
+            // Remove from LRU list
+            let mut lru_guard = self.lru_list.write().map_err(
+                |e: PoisonError<RwLockWriteGuard<'_, VecDeque<(String, String, u32)>>>| {
+                    e.to_string()
+                },
+            )?;
+            if let Some(pos) = lru_guard.iter().position(|entry| entry == &key) {
+                lru_guard.remove(pos);
+            }
+
+            // Finally, remove from pool
+            drop(dirty_guard); // Drop early to avoid holding too many locks
+            drop(lru_guard);
+            drop(pool_guard); // Optional: pool cleanup after all done
+        }
+
+        Ok(())
+    }
 }
