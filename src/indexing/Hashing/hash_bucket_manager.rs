@@ -1,5 +1,17 @@
+use std::sync::Arc;
+
+use super::bucket_value;
+use super::hashing_buffer::HashingBuffer;
 use crate::indexing::Hashing::bucket_value::BucketValue;
 use crate::indexing::Hashing::hash_bucket::HashBucket;
+use crate::storage::buffer::index_buffer::IndexBuffer;
+use crate::storage::buffer::page_buffer::PageBuffer;
+use crate::storage::catalog::maps::column_map::ColumnMap;
+use crate::storage::page::page::Page;
+use crate::storage::record::record::Record;
+use crate::storage::record::record_manager::RecordManager;
+pub const MAX_BUCKET_VALUES: u8 = (((1024 * 2) - (32 + 32 + 8 + 8 + 8)) / (32 + 16 + 8)) as u8; // Floor: 1960 / 56 = 35
+
 /// A `HashBucketSerializer` handles serialization and deserialization of `HashBucket` instances.
 pub struct HashBucketManager;
 
@@ -55,7 +67,8 @@ impl HashBucketManager {
         offset += 1;
 
         // Read next_bucket_pointer (4 bytes)
-        bucket.next_bucket_pointer = u32::from_le_bytes(buffer[offset..offset + 4].try_into().unwrap());
+        bucket.next_bucket_pointer =
+            u32::from_le_bytes(buffer[offset..offset + 4].try_into().unwrap());
         offset += 4;
 
         // Read value_count (1 byte)
@@ -72,29 +85,250 @@ impl HashBucketManager {
         bucket
     }
     /// Adds a `BucketValue` to the `HashBucket`, reusing a deleted slot if available or appending to the end.
-    pub fn add_value_to_bucket(bucket: &mut HashBucket, value: &BucketValue) {
-        // Assume BucketValue implements Clone for copying the value
+
+    pub fn add_value(bucket: &mut HashBucket, value: &BucketValue) {
         let value = value.clone();
 
-        // Check for a deleted slot within the used portion (up to value_count)
-        for i in 0..bucket.value_count as usize {
-            if bucket.values[i].is_deleted != 0 {
-                // Found a deleted slot, replace it
-                bucket.values[i] = value;
-                bucket.is_dirty = 1; // Mark bucket as dirty
+        let mut current_bucket = bucket;
+
+        while let Some(b) = Some(current_bucket) {
+            //first we try to place in deleted slot
+            for i in 0..b.value_count as usize {
+                if b.values[i].is_deleted != 0 {
+                    b.values[i] = value;
+                    b.is_dirty = 1;
+                    return;
+                }
+            }
+
+            // second, we try to place at end
+            if b.value_count < MAX_BUCKET_VALUES {
+                if (b.value_count as usize) < b.values.len() {
+                    b.values[b.value_count as usize] = value;
+                } else {
+                    b.values.push(value);
+                }
+                b.value_count += 1;
+                b.is_dirty = 1;
+                return;
+            }
+
+            // third, we go to next bucket if exists
+            if let Some(ref mut next) = b.next_bucket {
+                current_bucket = next.as_mut();
+            } else {
+                // fourth, wo next_bucket, create new
+                //LOGIC TO BE CHANGED
+                //IT IS ADD just as placeholder
+                let mut new_bucket = HashBucket::new(0); // change `0` to desired bucket_no
+                new_bucket.values.push(value);
+                new_bucket.value_count = 1;
+                new_bucket.is_dirty = 1;
+                b.next_bucket = Some(Box::new(new_bucket));
                 return;
             }
         }
+    }
 
-        // No deleted slot found, append to the end (within value_count)
-        if (bucket.value_count as usize) < bucket.values.len() {
-            // Replace the value at value_count
-            bucket.values[bucket.value_count as usize] = value;
-        } else {
-            // Append to the vector
-            bucket.values.push(value);
+    // pub fn add_value_to_bucket(bucket: &mut HashBucket, value: &BucketValue) {
+    //     // Assume BucketValue implements Clone for copying the value
+    //     let value = value.clone();
+
+    //     // Check for a deleted slot within the used portion (up to value_count)
+    //     for i in 0..bucket.value_count as usize {
+    //         if bucket.values[i].is_deleted != 0 {
+    //             // Found a deleted slot, replace it
+    //             bucket.values[i] = value;
+    //             bucket.is_dirty = 1; // Mark bucket as dirty
+    //             return;
+    //         }
+    //     }
+    //     if bucket.value_count < MAX_BUCKET_VALUES {
+    //         // No deleted slot found, append to the end (within value_count)
+    //         if (bucket.value_count as usize) < bucket.values.len() {
+    //             // Replace the value at value_count
+    //             bucket.values[bucket.value_count as usize] = value;
+    //         } else {
+    //             // Append to the vector
+    //             bucket.values.push(value);
+    //         }
+    //         bucket.value_count += 1;
+    //         bucket.is_dirty = 1; // Mark bucket as dirty
+    //     } else {
+    //         if let Some(next) = &mut bucket.next_bucket {
+    //             //If Not None
+    //         } else {
+    //             //next_bucket is None
+    //     }
+    // }
+
+    pub fn get_values(
+        key: &str,
+        db_name: &str,
+        table_id: u32,
+        column_name: &str,
+        column_map: &ColumnMap,
+        pgbuffer: &Arc<PageBuffer>,
+        buffer: &IndexBuffer,
+
+
+    ) -> Result<Vec<Record>, String> {
+        let mut records: Vec<Record> = Vec::new();
+        let index = HashBucketManager::murmur_hash(key);
+        let is_overflow = 0;
+
+        let combined_string = format!("{}-{}", table_id, column_name);
+        let table_column: &str = &combined_string;
+
+        // let mut bucket = HashBucket::new(0);
+        // Get the page and mark it dirty
+        let page = buffer.get_page(db_name, table_column, is_overflow, index, false)?;
+        let mut bucket = page.write().map_err(|e| e.to_string())?;
+
+        let mut bucket_ref: Option<&mut HashBucket> = Some(&mut bucket); // Get By Buffer later
+
+        while let Some(b_ref) = bucket_ref {
+            for i in 0..b_ref.value_count as usize {
+                let bucket_value = b_ref.values[i];
+                if bucket_value.is_deleted == 0 {
+                    let page_arc = pgbuffer
+                        .get_page(db_name, &table_id.to_string(), bucket_value.page_no, false)
+                        .unwrap();
+                    let page_read = page_arc.read().unwrap();
+                    let page: &Page = &*page_read;
+
+                    // let page:&Page= pgBuffer::get_page(db_name,table_id.as_str() , bucket_value.page_no, 0).unwrap();
+                    let record =
+                        RecordManager::get_record_by_offset(page, bucket_value.offset, column_map);
+                    let temporary_value =
+                        RecordManager::get_column_value(&record, column_name, column_map);
+
+                    if temporary_value == key {
+                        records.push(record);
+                    }
+                }
+                // process bucket_value here
+            }
+
+            bucket_ref = b_ref.next_bucket.as_deref_mut();
         }
-        bucket.value_count += 1;
-        bucket.is_dirty = 1; // Mark bucket as dirty
+
+        Ok(records)
+    }
+    pub fn delete_value(
+        buffer: &IndexBuffer,
+        db_name: &str,
+        table_column: &str,
+        offset: u16,
+        key: &str,
+    ) -> Result<bool, String> {
+        let  current_page_no = HashBucketManager::murmur_hash(key);
+        let page_no = current_page_no;
+        let  is_overflow = 0;
+
+        // Get the first page and lock it for write access
+        let  page =
+            buffer.get_page(db_name, table_column, is_overflow, current_page_no, true)?;
+        let mut bucket = page.write().map_err(|e| e.to_string())?;
+
+        let mut bucket_ref: Option<&mut HashBucket> = Some(&mut bucket); // Get the current bucket
+
+        while let Some(b_ref) = bucket_ref {
+            // Iterate through values in the current bucket
+            for i in 0..b_ref.value_count as usize {
+                let value = &mut b_ref.values[i];
+
+                // Check for the value we need to delete
+                if value.page_no == page_no && value.offset == offset && value.is_deleted == 0 {
+                    value.is_deleted = 1; // Mark the value as deleted
+                    b_ref.is_dirty = 1; // Mark the bucket as dirty
+                    return Ok(true); // Return true since we successfully deleted the record
+                }
+            }
+
+            // Move to the next bucket if it exists
+            bucket_ref = b_ref.next_bucket.as_deref_mut();
+        }
+
+        // If no matching value is found, return false
+        Ok(false)
+    }
+
+    // pub fn delete_value(bucket: &mut HashBucket, page_no: u32, offset: u16) {
+    // let mut current_bucket = bucket;
+
+    // while let Some(b) = Some(current_bucket) {
+    //     for i in 0..b.value_count as usize {
+    //         let val = &mut b.values[i];
+    //         if val.page_no == page_no && val.offset == offset && val.is_deleted == 0 {
+    //             val.is_deleted = 1;
+    //             b.is_dirty = 1;
+    //             return;
+    //         }
+    //     }
+
+    //     // Move to the next bucket if exists
+    //     if let Some(ref mut next) = b.next_bucket {
+    //         current_bucket = next.as_mut();
+    //     } else {
+    //         // No match found and no next bucket — exit
+    //         return;
+    //     }
+    // }
+
+    pub fn murmur_hash(key: &str) -> u32 {
+        let seed: u32 = 0x9747b28c; // Fixed seed
+        let data = key.as_bytes();
+        let len = data.len() as u32;
+        let mut hash = seed;
+
+        let c1: u32 = 0xcc9e2d51;
+        let c2: u32 = 0x1b873593;
+        let r1 = 15;
+        let r2 = 13;
+        let m: u32 = 5;
+        let n: u32 = 0xe6546b64;
+
+        let mut i = 0;
+        while i + 4 <= data.len() {
+            let k = u32::from_le_bytes([data[i], data[i + 1], data[i + 2], data[i + 3]]);
+
+            let mut k = k.wrapping_mul(c1);
+            k = k.rotate_left(r1);
+            k = k.wrapping_mul(c2);
+
+            hash ^= k;
+            hash = hash.rotate_left(r2);
+            hash = hash.wrapping_mul(m).wrapping_add(n);
+
+            i += 4;
+        }
+
+        // Tail
+        let mut k1: u32 = 0;
+        let rem = data.len() & 3;
+        if rem == 3 {
+            k1 ^= (data[i + 2] as u32) << 16;
+        }
+        if rem >= 2 {
+            k1 ^= (data[i + 1] as u32) << 8;
+        }
+        if rem >= 1 {
+            k1 ^= data[i] as u32;
+            k1 = k1.wrapping_mul(c1);
+            k1 = k1.rotate_left(r1);
+            k1 = k1.wrapping_mul(c2);
+            hash ^= k1;
+        }
+
+        // Finalization
+        hash ^= len;
+        hash ^= hash >> 16;
+        hash = hash.wrapping_mul(0x85ebca6b);
+        hash ^= hash >> 13;
+        hash = hash.wrapping_mul(0xc2b2ae35);
+        hash ^= hash >> 16;
+
+        hash
     }
 }

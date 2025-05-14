@@ -17,6 +17,55 @@ pub struct IndexBuffer {
     // Keeps track of dirty (modified) pages.
     dirty_pages: Arc<RwLock<HashSet<(String, String, u32, u8)>>>,
 }
+impl IndexBuffer {
+    pub fn get_page(
+        &self,
+        db_name: &str,
+        table_column: &str,
+        start_page: u32,
+        is_overflow: u8,
+    ) -> Result<Arc<RwLock<HashBucket>>, String> {
+        let mut current_page_no = start_page;
+        let mut is_overflow = is_overflow;
+
+        // Load the head bucket
+        let head_page = self._get_page(db_name, table_column, is_overflow, current_page_no, false)?;
+        let mut head_bucket_guard = head_page.write().map_err(|e| e.to_string())?;
+        let mut current_bucket: &mut HashBucket = &mut *head_bucket_guard;
+
+        // Traverse and load chained buckets
+        while current_bucket.next_bucket_pointer != 0 {
+            let next_page_no = current_bucket.next_bucket_pointer;
+
+            // Always overflow for chained buckets
+            let next_page = self._get_page(db_name, table_column, 1, next_page_no, false)?;
+            let next_bucket_guard = next_page.read().map_err(|e| e.to_string())?;
+            let next_bucket_ref = &*next_bucket_guard;
+
+            // Manually create a Box<HashBucket> by cloning fields
+            let cloned_bucket = HashBucket {
+                bucket_no: next_bucket_ref.bucket_no,
+                is_deleted: next_bucket_ref.is_deleted,
+                is_overflowed: next_bucket_ref.is_overflowed,
+                next_bucket_pointer: next_bucket_ref.next_bucket_pointer,
+                value_count: next_bucket_ref.value_count,
+                values: next_bucket_ref.values.clone(), // clone the vector
+                next_bucket: None,
+                is_dirty: next_bucket_ref.is_dirty,
+            };
+
+            current_bucket.next_bucket = Some(Box::new(cloned_bucket));
+
+            // Move current_bucket to next one
+            current_bucket = current_bucket.next_bucket.as_deref_mut().unwrap();
+          
+        }
+        // All overflow chain loaded
+        drop(head_bucket_guard); // release lock before returning
+        Ok(head_page)
+
+    }
+}
 
 impl IndexBuffer {
     /// Creates a new catalog buffer with empty cache.
@@ -32,7 +81,7 @@ impl IndexBuffer {
     ///
     /// If `mark_dirty` is true, marks it dirty (use this if you're gonna *mutate* the page).
     /// Loads from disk if not found in memory.
-    pub fn get_page(
+    pub fn _get_page(
         &self,
         db_name: &str,
         table_column: &str,

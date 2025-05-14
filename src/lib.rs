@@ -12,6 +12,7 @@ pub mod storage {
     pub mod buffer{
         pub mod page_buffer;
         pub mod catalog_buffer;
+        pub mod index_buffer;
     }
     pub mod record;
 }
@@ -25,4 +26,4 @@ pub mod types;
 pub mod oid;
 pub mod indexing;
 pub mod networking;
-pub mod parser;
+// pub mod parser;

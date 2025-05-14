@@ -5,7 +5,7 @@ mod oid;
 mod storage;
 mod types;
 mod utils;
-pub mod parser;
+// pub mod parser;
 
 use ZenithDB::{networking::handler::initialize_listener};
 
