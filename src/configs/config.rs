@@ -16,10 +16,11 @@ pub mod Config {
     pub const PAGE_SIZE: u32 = 4096;
     pub const BUCKET_SIZE: u32 = 2048;
     pub const PAGE_HEADER_SIZE: u16 = 20;
-    pub const INDEX_PAGE_SIZE: u16 = 4096;
+    pub const INDEX_PAGE_SIZE: u16 = 2048;
     pub const FSM_PAGE_SIZE: u16 = 4096;
     pub const CATLOG_PAGE_SIZE: u16 = 32768;
     pub const REF_PAGE_SIZE: u16 = 32768;
     pub const PAGE_BUF_CAP: u16 = 16384;
     pub const CATLOG_BUF_CAP: u16 = 1000;
+    pub const IDX_BUF_CAP: u16 = 1000;
 }

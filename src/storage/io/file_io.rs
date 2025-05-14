@@ -57,7 +57,9 @@ impl IOEngine {
     pub fn create_index(db_name: &str, index_name: &str) -> Result<(), String> {
         let base = PathBuf::from(DB_PATH).join(db_name);
         let path = base.join("indexes").join(format!("{index_name}.bin"));
+        let path_ov = base.join("indexes").join(format!("{index_name}_ov.bin"));
         create_file(&path)?;
+        create_file(&path_ov)?;
         Ok(())
     }
 
@@ -91,6 +93,8 @@ impl IOEngine {
     pub fn delete_index(db_name: &str, index_name: &str) -> Result<(), String> {
         let base = PathBuf::from(DB_PATH).join(db_name);
         let path = base.join("indexes").join(format!("{index_name}.bin"));
+        let path_ov = base.join("indexes").join(format!("{index_name}_ov.bin"));
+        remove_file(&path_ov)?;
         remove_file(&path)?;
         Ok(())
     }
@@ -113,6 +117,7 @@ impl IOEngine {
             PageType::FsmPage => base.join("fst").join(file_name),
             PageType::CatlogPage => base.join(format!("{db_name}.bin")),
             PageType::RefPage => base.join(format!("{db_name}_ref.bin")),
+            PageType::OverflowPage => base.join(format!("{file_name}_ov.bin")),
         };
         path
     }
@@ -146,7 +151,10 @@ impl IOEngine {
     /// # Returns
     /// - `u64` offset in bytes from the beginning of the file.
     pub fn calculate_offsets_to_read(page_type: &PageType, page_no: u32) -> u64 {
-        let start_offset: u64 = page_type.size_in_bytes() * page_no as u64;
+        let mut start_offset: u64 = page_type.size_in_bytes() * page_no as u64;
+        if let PageType::OverflowPage = page_type {
+            start_offset = page_type.size_in_bytes() * (page_no as u64 - 1);
+        }
         start_offset
     }
 
