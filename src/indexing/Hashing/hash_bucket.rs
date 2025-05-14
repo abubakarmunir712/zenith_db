@@ -3,6 +3,7 @@ pub const MAX_BUCKET_VALUES: u8 = (((1024 * 2) - (32 + 32 + 8 + 8 + 8)) / (32 + 
 use crate::indexing::Hashing::bucket_value::BucketValue;
 
 /// A `HashBucket` represents a bucket in a hash table, containing metadata and a list of values.
+
 pub struct HashBucket {
     pub bucket_no: u32,
     pub is_deleted: u8,

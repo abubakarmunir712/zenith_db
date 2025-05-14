@@ -72,7 +72,7 @@ impl RecordManager {
         records
     }
 
-    fn get_column_value(record: &Record, column_name: &str, column_map: &ColumnMap) -> String {
+    pub fn get_column_value(record: &Record, column_name: &str, column_map: &ColumnMap) -> String {
         let column_no = column_map
             .ord_map()
             .iter()
