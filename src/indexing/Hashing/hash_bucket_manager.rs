@@ -245,8 +245,9 @@ impl HashBucketManager {
         let mut records: Vec<Record> = Vec::new();
         let index = HashBucketManager::murmur_hash(key);
         let is_overflow = 0;
+        println!("-->{column_name}");
         let column_id = column_map.get_column(column_name).unwrap().oid();
-        let combined_string = format!("{}-{}", table_id, column_id.to_string());
+        let combined_string = format!("{}_{}", table_id, column_id.to_string());
         let table_column: &str = &combined_string;
 
         // let mut bucket = HashBucket::new(0);
@@ -408,7 +409,8 @@ impl HashBucketManager {
         buffer: &IndexBuffer,
     ) -> Result<(), String> {
         let column_id = column_map.get_column(column_name).unwrap().oid();
-        IOEngine::create_index(db_name, &format!("{}_{}", table_id, column_id))?;
+        IOEngine::create_index(db_name, &format!("{}_{}", table_id, column_id)).unwrap();
+
         for i in 0..10000 {
             let bucket = HashBucket::new(i);
             let mut buffer = [0u8; INDEX_PAGE_SIZE as usize];
@@ -421,5 +423,29 @@ impl HashBucketManager {
             )?;
         }
         Ok(())
+    }
+
+    pub fn does_key_exists(
+        key: &str,
+        db_name: &str,
+        table_id: u32,
+        column_name: &str,
+        column_map: &ColumnMap,
+        pgbuffer: &Arc<PageBuffer>,
+        buffer: &Arc<IndexBuffer>,
+    ) -> Result<bool, String> {
+        let records = Self::get_values(
+            key,
+            db_name,
+            table_id,
+            column_name,
+            column_map,
+            pgbuffer,
+            buffer,
+        )?;
+        if records.len() == 0 {
+            return Ok(false);
+        }
+        Ok(true)
     }
 }

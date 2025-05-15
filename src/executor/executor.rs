@@ -126,6 +126,7 @@ impl Executor {
                 values,
                 &self.c_manager,
                 &self.p_buffer,
+                &self.i_buffer
             ) {
                 Ok(_) => {
                     return ResType::Success("Record inserted successfully".to_string());

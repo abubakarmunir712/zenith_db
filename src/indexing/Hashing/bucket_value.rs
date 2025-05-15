@@ -7,6 +7,14 @@ pub struct BucketValue {
 }
 
 impl BucketValue {
+    pub fn new(page_no: u32, offset: u16) -> Self {
+        Self {
+            page_no,
+            offset,
+            is_deleted: 0,
+        }
+    }
+
     /// Serializes the `BucketValue` into the provided buffer starting from `starting_offset`.
     pub fn serialize(&self, buffer: &mut [u8], starting_offset: usize) {
         let mut offset = starting_offset;

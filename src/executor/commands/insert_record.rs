@@ -6,8 +6,12 @@ use crate::{
         errors::db_status::DatabaseStatus,
         types::{catalog_types::CatalogData, page_types::PageType},
     },
+    indexing::Hashing::{bucket_value::BucketValue, hash_bucket_manager::HashBucketManager},
     storage::{
-        buffer::page_buffer::PageBuffer,
+        buffer::{
+            index_buffer::{self, IndexBuffer},
+            page_buffer::PageBuffer,
+        },
         catalog::catalog_manager::CatalogManager,
         io::file_io::IOEngine,
         page::page::Page,
@@ -22,9 +26,12 @@ pub fn insert_record(
     values: Vec<String>,
     c_manager: &CatalogManager,
     p_buffer: &Arc<PageBuffer>,
+    index_buffer: &Arc<IndexBuffer>,
 ) -> Result<(), String> {
     let t_map = c_manager.get_table_map(db_name, true)?;
     let t_map = t_map.read().map_err(|e| e.to_string())?;
+    let mut primary = String::new();
+    let mut p_idx = 0;
     let mut pg_no = 0;
     if let CatalogData::TableMap(t_map) = &*t_map {
         let t_entry = t_map.get_table(table.trim());
@@ -42,6 +49,12 @@ pub fn insert_record(
                 }
             }
             for col in c_map.ord_map() {
+                let col_e = c_map.get_column(&col).unwrap();
+                if col_e.is_primary_key() {
+                    primary = col.to_string();
+                }
+                // println!("{}", col_e.is_primary_key());
+                p_idx = r_cols.len();
                 let idx = columns.iter().position(|x| x == col);
                 if idx.is_none() {
                     r_cols.push("".to_string());
@@ -51,7 +64,22 @@ pub fn insert_record(
                 }
             }
 
-            let record = Record::new(r_cols, c_map)?;
+            // if primary != ""
+            //     && HashBucketManager::does_key_exists(
+            //         &r_cols[p_idx],
+            //         db_name,
+            //         t_oid as u32,
+            //         &primary,
+            //         c_map,
+            //         p_buffer,
+            //         &index_buffer,
+            //     )?
+            // {
+            //     return Err("Key already exixts".to_string());
+            // }
+
+            let record = Record::new(r_cols.clone(), c_map)?;
+
             pg_no =
                 IOEngine::calculate_total_pages(db_name, &t_oid.to_string(), PageType::DataPage)?
                     - 1;
@@ -71,6 +99,17 @@ pub fn insert_record(
                 )?;
                 pg_no += 1;
             }
+            let b = BucketValue::new(pg_no, i_res.unwrap().1);
+            // if primary != "" {
+            //     HashBucketManager::add_value(
+            //         &r_cols[p_idx],
+            //         &b,
+            //         db_name,
+            //         &format!("{}_{}", t_oid, primary),
+            //         0,
+            //         &index_buffer,
+            //     )?;
+            // }
         }
         p_buffer.force_flush(db_name, &t_oid.to_string(), pg_no)?;
     }

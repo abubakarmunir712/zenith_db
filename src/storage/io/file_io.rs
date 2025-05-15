@@ -3,7 +3,7 @@ use crate::enums::types::page_types::PageType;
 use crate::utils::io_utils::*;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 pub struct IOEngine;
 
 impl IOEngine {
@@ -57,15 +57,16 @@ impl IOEngine {
     pub fn create_index(db_name: &str, index_name: &str) -> Result<(), String> {
         let base = PathBuf::from(DB_PATH).join(db_name);
         let path = base.join("indexes").join(format!("{index_name}.bin"));
-        let path_ov = base.join("indexes").join(format!("{index_name}_ov.bin"));
+        let path_ov = base.join("indexes").join(format!("ov_{index_name}.bin"));
         create_file(&path)?;
         create_file(&path_ov)?;
         Self::append_page(
             db_name,
             &index_name,
             &[0u8; INDEX_PAGE_SIZE as usize],
-            PageType::OverflowPage,
+            PageType::IndexPage,
         )?;
+        
         Ok(())
     }
 
@@ -99,7 +100,7 @@ impl IOEngine {
     pub fn delete_index(db_name: &str, index_name: &str) -> Result<(), String> {
         let base = PathBuf::from(DB_PATH).join(db_name);
         let path = base.join("indexes").join(format!("{index_name}.bin"));
-        let path_ov = base.join("indexes").join(format!("{index_name}_ov.bin"));
+        let path_ov = base.join("indexes").join(format!("ov_{index_name}.bin"));
         remove_file(&path_ov)?;
         remove_file(&path)?;
         Ok(())
@@ -119,11 +120,11 @@ impl IOEngine {
         let file_name = format!("{file_name}.bin");
         let path = match page_type {
             PageType::DataPage => base.join("tables").join(file_name),
-            PageType::IndexPage => base.join("indexes").join(format!("{file_name}.bin")),
+            PageType::IndexPage => base.join("indexes").join(format!("{file_name}")),
             PageType::FsmPage => base.join("fst").join(file_name),
             PageType::CatlogPage => base.join(format!("{db_name}.bin")),
             PageType::RefPage => base.join(format!("{db_name}_ref.bin")),
-            PageType::OverflowPage => base.join(format!("{file_name}_ov.bin")),
+            PageType::OverflowPage => base.join(format!("ov_{file_name}.bin")),
         };
         path
     }
