@@ -21,9 +21,11 @@ pub mod configs;
 pub mod enums{
     pub mod types;
     pub mod errors;
+    pub mod commands;
 }
 pub mod types;
 pub mod oid;
 pub mod indexing;
 pub mod networking;
-// pub mod parser;
+pub mod parser;
+pub mod executor;

@@ -177,4 +177,80 @@ impl CatalogBuffer {
         }
         Ok(())
     }
+
+    pub fn force_evict(
+        &self,
+        db_name: &str,
+        page_type: CatalogType,
+        page_number: u32,
+    ) -> Result<(), String> {
+        let mut pool: RwLockWriteGuard<
+            '_,
+            HashMap<(String, CatalogType, u32), Arc<RwLock<CatalogData>>>,
+        > = self.pool.write().map_err(
+            |e: PoisonError<
+                RwLockWriteGuard<'_, HashMap<(String, CatalogType, u32), Arc<RwLock<CatalogData>>>>,
+            >| e.to_string(),
+        )?;
+        let mut lru_list: RwLockWriteGuard<'_, VecDeque<(String, CatalogType, u32)>> =
+            self.lru_list.write().map_err(
+                |e: PoisonError<RwLockWriteGuard<'_, VecDeque<(String, CatalogType, u32)>>>| {
+                    e.to_string()
+                },
+            )?;
+        let mut dirty_pages = self.dirty_pages.write().map_err(
+            |e: PoisonError<RwLockWriteGuard<'_, HashSet<(String, CatalogType, u32)>>>| {
+                e.to_string()
+            },
+        )?;
+        let len = lru_list.len();
+        let key_p = (db_name.to_string(), page_type, page_number);
+        let mut index = 0;
+        for i in 0..len {
+            let key = &lru_list[i];
+            if *key == key_p {
+                index = i
+            }
+        }
+        lru_list.remove(index);
+        if dirty_pages.contains(&key_p) {
+            dirty_pages.remove(&key_p);
+        }
+        pool.remove(&key_p);
+
+        Ok(())
+    }
+
+
+    pub fn force_flush(
+        &self,
+        db_name: &str,
+        page_type: CatalogType,
+        page_number: u32,
+    ) -> Result<(), String> {
+        let pool: RwLockReadGuard<
+            '_,
+            HashMap<(String, CatalogType, u32), Arc<RwLock<CatalogData>>>,
+        > = self.pool.read().map_err(
+            |e: PoisonError<
+                RwLockReadGuard<'_, HashMap<(String, CatalogType, u32), Arc<RwLock<CatalogData>>>>,
+            >| e.to_string(),
+        )?;
+    
+        let key = (db_name.to_string(), page_type, page_number);
+        if let Some(val) = pool.get(&key) {
+            let page: RwLockReadGuard<'_, CatalogData> = val
+                .read()
+                .map_err(|e: PoisonError<RwLockReadGuard<'_, CatalogData>>| e.to_string())?;
+    
+            let mut buffer = vec![0; CATLOG_PAGE_SIZE as usize];
+            page.serialize(&mut buffer);
+            IOEngine::update_page(db_name, db_name, &buffer, PageType::CatlogPage, page_number)?;
+        } else {
+            return Err("Page not found in buffer pool.".to_string());
+        }
+    
+        Ok(())
+    }
+    
 }

@@ -1,0 +1,7 @@
+r#"create test (col1: int, col2: varchar)"#,
+r#"delete test"#,
+r#"insert into test (col1, col2) ([l1], [val2])"#,
+r#"select from test *"#,
+r#"select from test col1 = val1"#,
+r#"make test col1 NULL"#,
+r#"make test col2 PRIMARY"#,

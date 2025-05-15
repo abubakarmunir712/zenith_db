@@ -83,4 +83,25 @@ impl DataType {
             _ => unreachable!(),
         }
     }
+
+    pub fn from_string(s: &str) -> Result<Self, String> {
+        match s.to_lowercase().as_str() {
+            "char" => Ok(DataType::CHAR),
+            "varchar" => Ok(DataType::VARCHAR),
+            "bool" => Ok(DataType::BOOL),
+            "int" => Ok(DataType::INT),
+            "bigint" => Ok(DataType::BIGINT),
+            "smallint" => Ok(DataType::SMALLINT),
+            "tinyint" => Ok(DataType::TINYINT),
+            "decimal" => Ok(DataType::DECIMAL),
+            "double" => Ok(DataType::DOUBLE),
+            "float" => Ok(DataType::FLOAT),
+            "date" => Ok(DataType::DATE),
+            "time" => Ok(DataType::TIME),
+            "datetime" => Ok(DataType::DATETIME),
+            "text" => Ok(DataType::TEXT),
+            "null" => Ok(DataType::NULL),
+            _ => Err("Invalid data type".to_string()),
+        }
+    }
 }

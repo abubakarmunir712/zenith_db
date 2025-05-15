@@ -4,9 +4,13 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
+use crate::enums::types::res_type::ResType;
+use crate::executor;
+use crate::executor::executor::Executor;
+use crate::parser::parser::Parser;
 use crate::storage::io::file_io::IOEngine;
 
-pub fn initialize_listener() {
+pub fn initialize_listener(executor: Arc<Executor>) {
     let listener = TcpListener::bind("127.0.0.1:7878").expect("Could not bind");
     let connection_counter = Arc::new(AtomicUsize::new(0));
 
@@ -23,9 +27,9 @@ pub fn initialize_listener() {
             writeln!(&stream, "Error: Max connections limit reached").ok();
             continue;
         }
-
+        let executor = Arc::clone(&executor);
         counter.fetch_add(1, Ordering::SeqCst);
-        thread::spawn(move || handle_client(stream, counter));
+        thread::spawn(move || handle_client(stream, counter, executor));
     }
 }
 
@@ -42,7 +46,7 @@ fn parse_connection_string(conn_str: &str) -> Option<String> {
     }
 }
 
-fn handle_client(mut stream: TcpStream, counter: Arc<AtomicUsize>) {
+fn handle_client(mut stream: TcpStream, counter: Arc<AtomicUsize>, executor: Arc<Executor>) {
     let mut buffer = [0u8; 1024 * 32];
 
     // Read initial connection string
@@ -86,11 +90,16 @@ fn handle_client(mut stream: TcpStream, counter: Arc<AtomicUsize>) {
             writeln!(stream, "{db_name}").ok();
         }
 
-        println!("Query from [{}]: {}", db_name, query);
-
-        // 👉 Place to call actual query parser
-
-        writeln!(stream, "Query received on '{}': {}", db_name, query).ok();
+        let result = Parser::parse_query(&query, &db_name, executor.clone());
+        let mut response = String::new();
+        match result {
+            ResType::Error(s) => response = format!("Error: {}",s),
+            ResType::Success(s) => response = format!("Success: {}",s),
+            ResType::View(v) => {
+                response = format!("Table: {}",v.serialize());
+            }
+        }
+        writeln!(stream, "{response}").ok();
     }
 
     counter.fetch_sub(1, Ordering::SeqCst);
