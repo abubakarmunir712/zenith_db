@@ -29,3 +29,4 @@ pub mod indexing;
 pub mod networking;
 pub mod parser;
 pub mod executor;
+pub mod cli;

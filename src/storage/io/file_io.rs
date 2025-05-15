@@ -1,4 +1,4 @@
-use crate::configs::config::Config::DB_PATH;
+use crate::configs::config::Config::{DB_PATH, INDEX_PAGE_SIZE};
 use crate::enums::types::page_types::PageType;
 use crate::utils::io_utils::*;
 use std::fs::{self, File, OpenOptions};
@@ -60,6 +60,12 @@ impl IOEngine {
         let path_ov = base.join("indexes").join(format!("{index_name}_ov.bin"));
         create_file(&path)?;
         create_file(&path_ov)?;
+        Self::append_page(
+            db_name,
+            &index_name,
+            &[0u8; INDEX_PAGE_SIZE as usize],
+            PageType::OverflowPage,
+        )?;
         Ok(())
     }
 
@@ -113,7 +119,7 @@ impl IOEngine {
         let file_name = format!("{file_name}.bin");
         let path = match page_type {
             PageType::DataPage => base.join("tables").join(file_name),
-            PageType::IndexPage => base.join("indexes").join(file_name),
+            PageType::IndexPage => base.join("indexes").join(format!("{file_name}.bin")),
             PageType::FsmPage => base.join("fst").join(file_name),
             PageType::CatlogPage => base.join(format!("{db_name}.bin")),
             PageType::RefPage => base.join(format!("{db_name}_ref.bin")),
@@ -152,9 +158,6 @@ impl IOEngine {
     /// - `u64` offset in bytes from the beginning of the file.
     pub fn calculate_offsets_to_read(page_type: &PageType, page_no: u32) -> u64 {
         let mut start_offset: u64 = page_type.size_in_bytes() * page_no as u64;
-        if let PageType::OverflowPage = page_type {
-            start_offset = page_type.size_in_bytes() * (page_no as u64 - 1);
-        }
         start_offset
     }
 

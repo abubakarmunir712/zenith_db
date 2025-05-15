@@ -38,8 +38,6 @@ pub fn insert_record(
             let mut r_cols: Vec<String> = Vec::new();
             for col in &columns {
                 if c_map.get_column(&col).is_none() {
-                    println!("Yes");
-                    println!("{}", col);
                     return Err(DatabaseStatus::ColumnNotFound.message().to_string());
                 }
             }

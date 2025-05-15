@@ -51,7 +51,13 @@ fn handle_client(mut stream: TcpStream, counter: Arc<AtomicUsize>, executor: Arc
 
     // Read initial connection string
     let bytes_read = match stream.read(&mut buffer) {
-        Ok(0) | Err(_) => {
+        Ok(0) => {
+            println!("Client disconnected before sending database name");
+            counter.fetch_sub(1, Ordering::SeqCst);
+            return;
+        }
+        Err(e) => {
+            println!("Client connection error: {}", e);
             counter.fetch_sub(1, Ordering::SeqCst);
             return;
         }
@@ -67,39 +73,45 @@ fn handle_client(mut stream: TcpStream, counter: Arc<AtomicUsize>, executor: Arc
         }
         None => {
             writeln!(stream, "ERROR: Database not found").ok();
+            println!("Client tried to connect to non-existent DB: {}", conn_str.trim());
             counter.fetch_sub(1, Ordering::SeqCst);
             return;
         }
     };
 
-    // Keep connection alive and handle queries
     loop {
         let read = match stream.read(&mut buffer) {
-            Ok(0) => break, // disconnected
+            Ok(0) => {
+                println!("Client disconnected from DB: {}", db_name);
+                break;
+            }
+            Err(e) => {
+                println!("Error reading from client on DB {}: {}", db_name, e);
+                break;
+            }
             Ok(n) => n,
-            Err(_) => break,
         };
 
         let query = String::from_utf8_lossy(&buffer[..read]).trim().to_string();
-
         if query.is_empty() {
             continue;
         }
 
-        if query.trim() == "db" {
-            writeln!(stream, "{db_name}").ok();
+        println!("Received query: '{}' on DB: {}", query, db_name);
+
+        if query == "db" {
+            writeln!(stream, "{}", db_name).ok();
+            continue;
         }
 
         let result = Parser::parse_query(&query, &db_name, executor.clone());
-        let mut response = String::new();
-        match result {
-            ResType::Error(s) => response = format!("Error: {}",s),
-            ResType::Success(s) => response = format!("Success: {}",s),
-            ResType::View(v) => {
-                response = format!("Table: {}",v.serialize());
-            }
-        }
-        writeln!(stream, "{response}").ok();
+        let response = match result {
+            ResType::Error(s) => format!("Error: {}", s),
+            ResType::Success(s) => format!("Success: {}", s),
+            ResType::View(v) => format!("Table: {}", v.serialize()),
+        };
+
+        writeln!(stream, "{}", response).ok();
     }
 
     counter.fetch_sub(1, Ordering::SeqCst);

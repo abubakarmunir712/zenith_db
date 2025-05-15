@@ -23,10 +23,17 @@ pub enum SqlCommand {
         values: Vec<String>,
     },
     Select {
-        db_name:String,
+        db_name: String,
         table: String,
         filter: Option<Condition>,
         all: bool,
+    },
+
+    SelectByValue {
+        db_name: String,
+        table: String,
+        value: String,
+        col: String,
     },
     MakeNull {
         db_name: String,
@@ -38,4 +45,10 @@ pub enum SqlCommand {
         table: String,
         column: String,
     },
+    DeleteRecord {
+        db_name: String,
+        table: String,
+        value: String,
+        col: String,
+    }
 }

@@ -6,3 +6,5 @@ pub mod delete_table;
 pub mod make_null;
 pub mod insert_record;
 pub mod read_record;
+pub mod select_by_val;
+pub mod delete_record;

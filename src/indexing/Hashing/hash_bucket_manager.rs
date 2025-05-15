@@ -2,11 +2,14 @@ use std::sync::Arc;
 
 use super::bucket_value;
 use super::hashing_buffer::HashingBuffer;
+use crate::configs::config::Config::INDEX_PAGE_SIZE;
+use crate::enums::types::page_types::PageType;
 use crate::indexing::Hashing::bucket_value::BucketValue;
 use crate::indexing::Hashing::hash_bucket::HashBucket;
 use crate::storage::buffer::index_buffer::IndexBuffer;
 use crate::storage::buffer::page_buffer::PageBuffer;
 use crate::storage::catalog::maps::column_map::ColumnMap;
+use crate::storage::io::file_io::IOEngine;
 use crate::storage::page::page::Page;
 use crate::storage::record::record::Record;
 use crate::storage::record::record_manager::RecordManager;
@@ -17,7 +20,7 @@ pub struct HashBucketManager;
 
 impl HashBucketManager {
     /// Serializes the `HashBucket` into the provided buffer starting from `starting_offset`.
-    pub fn serialize(bucket: &HashBucket, buffer: &mut Vec<u8>, starting_offset: usize) {
+    pub fn serialize(bucket: &HashBucket, buffer: &mut [u8], starting_offset: usize) {
         let mut offset = starting_offset;
 
         // Write bucket_no (4 bytes)
@@ -88,7 +91,6 @@ impl HashBucketManager {
 
     // pub fn dddadd_value(key:&str,db_name:&str,table_column:&str,is_overflow:u8,buffer: &IndexBuffer,bucket: &mut HashBucket, value: &BucketValue) -> Result<(), String>{
 
-        
     //     let index = HashBucketManager::murmur_hash(key);
     //     let page = buffer.get_page(db_name, table_column, is_overflow, index)?;
     //     let mut bucket = page.write().map_err(|e| e.to_string())?;
@@ -139,59 +141,65 @@ impl HashBucketManager {
     //     }
     //     Ok(())
     // }
- pub fn add_value(
-    key: &str,
-    value: &BucketValue,
-    db_name: &str,
-    table_column: &str,
-    is_overflow: u8,
-    buffer: &IndexBuffer,
-) -> Result<(), String> {
-    let index = HashBucketManager::murmur_hash(key);
-    let page = buffer.get_page(db_name, table_column, is_overflow, index)?;
-    let mut guard = page.write().map_err(|e| e.to_string())?;
-    let mut current_bucket: &mut HashBucket = &mut *guard;
+    pub fn add_value(
+        key: &str,
+        value: &BucketValue,
+        db_name: &str,
+        table_column: &str,
+        is_overflow: u8,
+        index_buffer: &IndexBuffer,
+    ) -> Result<(), String> {
+        let index = HashBucketManager::murmur_hash(key);
+        let page = index_buffer.get_page(db_name, table_column, is_overflow, index)?;
+        let mut guard = page.write().map_err(|e| e.to_string())?;
+        let mut current_bucket: &mut HashBucket = &mut *guard;
 
-    let value = value.clone();
+        let value = value.clone();
 
-    loop {
-        // first we try to place in deleted slot
-        for i in 0..current_bucket.value_count as usize {
-            if current_bucket.values[i].is_deleted != 0 {
-                current_bucket.values[i] = value;
+        loop {
+            // first we try to place in deleted slot
+            for i in 0..current_bucket.value_count as usize {
+                if current_bucket.values[i].is_deleted != 0 {
+                    current_bucket.values[i] = value;
+                    current_bucket.is_dirty = 1;
+                    return Ok(());
+                }
+            }
+
+            // second, we try to place at end
+            if current_bucket.value_count < MAX_BUCKET_VALUES {
+                if (current_bucket.value_count as usize) < current_bucket.values.len() {
+                    current_bucket.values[current_bucket.value_count as usize] = value;
+                } else {
+                    current_bucket.values.push(value);
+                }
+                current_bucket.value_count += 1;
                 current_bucket.is_dirty = 1;
                 return Ok(());
             }
-        }
 
-        // second, we try to place at end
-        if current_bucket.value_count < MAX_BUCKET_VALUES {
-            if (current_bucket.value_count as usize) < current_bucket.values.len() {
-                current_bucket.values[current_bucket.value_count as usize] = value;
+            // third, we go to next bucket if exists
+            if let Some(ref mut next) = current_bucket.next_bucket {
+                current_bucket = next.as_mut();
             } else {
-                current_bucket.values.push(value);
-            }
-            current_bucket.value_count += 1;
-            current_bucket.is_dirty = 1;
-            return Ok(());
-        }
+                // fourth, wo next_bucket, create new
+                let total_pages =
+                    IOEngine::calculate_total_pages(db_name, table_column, PageType::OverflowPage)?
+                        + 1;
+                let mut new_bucket = HashBucket::new(total_pages); // change `0` to desired bucket_no
 
-        // third, we go to next bucket if exists
-        if let Some(ref mut next) = current_bucket.next_bucket {
-            current_bucket = next.as_mut();
-        } else {
-            // fourth, wo next_bucket, create new
-            let mut new_bucket = HashBucket::new(0); // change `0` to desired bucket_no
-            new_bucket.values.push(value);
-            new_bucket.value_count = 1;
-            new_bucket.is_dirty = 1;
-            current_bucket.next_bucket = Some(Box::new(new_bucket));
-            return Ok(());
+                new_bucket.values.push(value);
+                new_bucket.value_count = 1;
+                new_bucket.is_dirty = 1;
+                let mut buffer = [0u8; INDEX_PAGE_SIZE as usize];
+                HashBucketManager::serialize(&new_bucket, &mut buffer, 0);
+                current_bucket.next_bucket = Some(Box::new(new_bucket));
+                IOEngine::append_page(db_name, table_column, &buffer, PageType::OverflowPage)?;
+                index_buffer._get_page(db_name, table_column, 1, total_pages, true)?;
+                return Ok(());
+            }
         }
     }
-}
-
-
 
     // pub fn add_value_to_bucket(bucket: &mut HashBucket, value: &BucketValue) {
     //     // Assume BucketValue implements Clone for copying the value
@@ -233,14 +241,12 @@ impl HashBucketManager {
         column_map: &ColumnMap,
         pgbuffer: &Arc<PageBuffer>,
         buffer: &IndexBuffer,
-
-
     ) -> Result<Vec<Record>, String> {
         let mut records: Vec<Record> = Vec::new();
         let index = HashBucketManager::murmur_hash(key);
         let is_overflow = 0;
-
-        let combined_string = format!("{}-{}", table_id, column_name);
+        let column_id = column_map.get_column(column_name).unwrap().oid();
+        let combined_string = format!("{}-{}", table_id, column_id.to_string());
         let table_column: &str = &combined_string;
 
         // let mut bucket = HashBucket::new(0);
@@ -285,13 +291,12 @@ impl HashBucketManager {
         offset: u16,
         key: &str,
     ) -> Result<bool, String> {
-        let  current_page_no = HashBucketManager::murmur_hash(key);
+        let current_page_no = HashBucketManager::murmur_hash(key);
         let page_no = current_page_no;
-        let  is_overflow = 0;
+        let is_overflow = 0;
 
         // Get the first page and lock it for write access
-        let  page =
-            buffer.get_page(db_name, table_column, is_overflow, current_page_no)?;
+        let page = buffer.get_page(db_name, table_column, is_overflow, current_page_no)?;
         let mut bucket = page.write().map_err(|e| e.to_string())?;
 
         let mut bucket_ref: Option<&mut HashBucket> = Some(&mut bucket); // Get the current bucket
@@ -392,6 +397,29 @@ impl HashBucketManager {
         hash = hash.wrapping_mul(0xc2b2ae35);
         hash ^= hash >> 16;
 
-        hash
+        (hash % 10000) + 1
+    }
+
+    pub fn create_index(
+        db_name: &str,
+        table_id: u32,
+        column_name: &str,
+        column_map: &ColumnMap,
+        buffer: &IndexBuffer,
+    ) -> Result<(), String> {
+        let column_id = column_map.get_column(column_name).unwrap().oid();
+        IOEngine::create_index(db_name, &format!("{}_{}", table_id, column_id))?;
+        for i in 0..10000 {
+            let bucket = HashBucket::new(i);
+            let mut buffer = [0u8; INDEX_PAGE_SIZE as usize];
+            HashBucketManager::serialize(&bucket, &mut buffer, 0);
+            IOEngine::append_page(
+                db_name,
+                &format!("{}_{}", table_id, column_id),
+                &mut buffer,
+                PageType::IndexPage,
+            )?;
+        }
+        Ok(())
     }
 }

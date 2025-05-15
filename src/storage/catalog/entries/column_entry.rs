@@ -1,5 +1,6 @@
 use crate::enums::{errors::catalog_errors::CatalogError, types::datatypes::DataType};
 
+#[derive(Clone)]
 pub struct ColumnEntry {
     column_name: String,
     oid: u16,

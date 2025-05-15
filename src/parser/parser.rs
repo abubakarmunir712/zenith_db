@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
+use serde::de::value;
+
 use crate::{
     enums::{
-        commands::{
-            cmd::{self, SqlCommand},
-            cmd_obj::ColumnDef,
-        },
+        commands::{cmd::SqlCommand, cmd_obj::ColumnDef},
         errors::parser_errors::ParserError,
         types::{datatypes::DataType, res_type::ResType},
     },
@@ -165,6 +164,33 @@ impl Parser {
                 filter: None,
                 all: true,
             };
+            return executor.execute(cmd);
+        } else if tokens[0].trim().to_lowercase() == "select" && tokens.len() >= 4 {
+            let table = tokens[1].to_string();
+            let column = tokens[2].to_string();
+            let value = tokens[3..tokens.len()].join(" ");
+            let value = value.trim();
+            let cmd = SqlCommand::SelectByValue {
+                db_name: db_name.to_string(),
+                table,
+                col: column,
+                value: value.to_string(),
+            };
+
+            return executor.execute(cmd);
+        } else if tokens[0].trim().to_lowercase() == "delete" && tokens.len() >= 4 {
+            let table = tokens[1].to_string();
+            let column = tokens[2].to_string();
+            let value = tokens[3..tokens.len()].join(" ");
+            let value = value.trim();
+            let value = value.to_string();
+            let cmd = SqlCommand::DeleteRecord {
+                db_name: db_name.to_string(),
+                table,
+                col: column,
+                value,
+            };
+
             return executor.execute(cmd);
         } else {
             return ResType::Error(ParserError::InvalidSyntax.message().to_string());

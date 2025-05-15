@@ -4,6 +4,7 @@ use crate::configs::{
 };
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct ColumnMap {
     no_of_columns: u16,
     column_oid_bitmap: [u8; MAX_COLUMNS_LIMIT / 8],

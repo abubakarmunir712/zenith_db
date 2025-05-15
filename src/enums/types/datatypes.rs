@@ -1,5 +1,6 @@
 use crate::{configs::types_config::TypesConfig::MAX_TEXT_SIZE, types::null::NULL};
 
+#[derive(Clone)]
 pub enum DataType {
     CHAR,     // Fixed-length character type
     VARCHAR,  // Variable-length character type
@@ -59,7 +60,7 @@ impl DataType {
             12 => DataType::DATETIME,
             13 => DataType::TEXT,
             14 => DataType::NULL,
-            _=>unreachable!()
+            _ => unreachable!(),
         }
     }
 

@@ -7,19 +7,23 @@ use crate::{
         types::{catalog_types::CatalogData, page_types::PageType},
     },
     storage::{
-        buffer::page_buffer::PageBuffer, catalog::catalog_manager::CatalogManager,
-        io::file_io::IOEngine, record::record_manager::RecordManager,
+        buffer::page_buffer::PageBuffer,
+        catalog::catalog_manager::CatalogManager,
+        io::file_io::IOEngine,
+        page::page::Page,
+        record::{record::Record, record_manager::RecordManager},
     },
 };
 
-pub fn delete_record(
+pub fn select_by_val(
     db_name: &str,
     table: &str,
     col: &str,
     val: &str,
     c_manager: &CatalogManager,
     p_buffer: &Arc<PageBuffer>,
-) -> Result<(), String> {
+) -> Result<(Vec<String>, Vec<Record>), String> {
+    let mut records = Vec::new();
     let mut col_names = Vec::new();
     let t_map = c_manager.get_table_map(db_name, true)?;
     let t_map = t_map.read().map_err(|e| e.to_string())?;
@@ -41,10 +45,12 @@ pub fn delete_record(
                 0..IOEngine::calculate_total_pages(db_name, &t_oid.to_string(), PageType::DataPage)?
             {
                 let page = p_buffer.get_page(db_name, &t_oid.to_string(), pg_no, false)?;
-                let mut page = page.write().unwrap();
-                RecordManager::delete_record_by_value(&mut page, val, col, c_map);
+                let page = page.read().unwrap();
+                println!("{val}");
+                let t_rec = RecordManager::get_records_by_value(&page, val, col, c_map);
+                records.extend(t_rec);
             }
         }
     }
-    Ok(())
+    Ok((col_names, records))
 }

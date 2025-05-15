@@ -8,7 +8,7 @@ pub struct BucketValue {
 
 impl BucketValue {
     /// Serializes the `BucketValue` into the provided buffer starting from `starting_offset`.
-    pub fn serialize(&self, buffer: &mut Vec<u8>, starting_offset: usize) {
+    pub fn serialize(&self, buffer: &mut [u8], starting_offset: usize) {
         let mut offset = starting_offset;
 
         // Write page_no (4 bytes)

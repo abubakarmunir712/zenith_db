@@ -4,7 +4,7 @@ use crate::storage::record::record::Record;
 pub enum ResType {
     Success(String),
     View(View),
-    Error(String)
+    Error(String),
 }
 
 #[derive(Debug)]
@@ -52,7 +52,7 @@ impl View {
 
     pub fn deserialize(input: &str) -> Self {
         let mut lines = input.lines();
-        
+
         // Read column names
         let num_cols: usize = lines.next().unwrap().parse().unwrap();
         let column_names: Vec<String> = (0..num_cols)
@@ -78,6 +78,65 @@ impl View {
             values.push(row);
         }
 
-        View { column_names, values }
+        View {
+            column_names,
+            values,
+        }
+    }
+
+    pub fn display(&self) -> String {
+        let mut result = String::new();
+
+        // Compute column widths
+        let mut col_widths: Vec<usize> = self.column_names.iter().map(|name| name.len()).collect();
+
+        for row in &self.values {
+            for (i, val) in row.iter().enumerate() {
+                col_widths[i] = col_widths[i].max(val.len());
+            }
+        }
+
+        // Helper to create a horizontal border like +------+------+
+        let border = format!(
+            "+{}+\n",
+            col_widths
+                .iter()
+                .map(|w| "-".repeat(*w + 2))
+                .collect::<Vec<_>>()
+                .join("+")
+        );
+
+        // Add top border
+        result.push_str(&border);
+
+        // Add column names
+        result.push_str(&format!(
+            "| {} |\n",
+            self.column_names
+                .iter()
+                .enumerate()
+                .map(|(i, name)| format!("{:^width$}", name, width = col_widths[i]))
+                .collect::<Vec<_>>()
+                .join(" | ")
+        ));
+
+        // Add mid border
+        result.push_str(&border);
+
+        // Add each row
+        for row in &self.values {
+            result.push_str(&format!(
+                "| {} |\n",
+                row.iter()
+                    .enumerate()
+                    .map(|(i, val)| format!("{:^width$}", val, width = col_widths[i]))
+                    .collect::<Vec<_>>()
+                    .join(" | ")
+            ));
+        }
+
+        // Add bottom border
+        result.push_str(&border);
+        result
     }
 }

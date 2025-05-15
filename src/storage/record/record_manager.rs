@@ -72,6 +72,34 @@ impl RecordManager {
         records
     }
 
+    pub fn delete_record_by_value(
+        page: &mut Page,
+        value: &str,
+        column_name: &str,
+        column_map: &ColumnMap,
+    ) {
+        let column_no = column_map
+            .ord_map()
+            .iter()
+            .position(|x| x == column_name)
+            .unwrap();
+        let mut slots = Vec::new();
+        for slot in page.slot_table() {
+            if slot.is_deleted() == 0 {
+                let bytes = &page.data()[slot.record_offset() as usize
+                    ..slot.record_size() as usize + slot.record_offset() as usize];
+                let record = Record::deserialize(bytes, column_map);
+                let col = record.columns()[column_no].to_string();
+                if col == value {
+                    slots.push(slot.record_offset());
+                }
+            }
+        }
+        for slot in slots {
+            PageManager::mark_slot_as_deleted(page, slot);
+        }
+    }
+
     pub fn get_column_value(record: &Record, column_name: &str, column_map: &ColumnMap) -> String {
         let column_no = column_map
             .ord_map()

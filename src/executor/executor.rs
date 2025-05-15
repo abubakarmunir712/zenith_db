@@ -6,21 +6,25 @@ use crate::{
         types::res_type::{ResType, View},
     },
     storage::{
-        buffer::{catalog_buffer::CatalogBuffer, page_buffer::PageBuffer},
+        buffer::{
+            catalog_buffer::CatalogBuffer, index_buffer::IndexBuffer, page_buffer::PageBuffer,
+        },
         catalog::catalog_manager::CatalogManager,
     },
 };
 
 use super::commands::{
-    create_db::create_db, delete_db::delete_db, delete_table::delete_table,
-    insert_record::insert_record, insert_table::insert_table, make_null::make_null,
-    make_primary::make_primary, read_record::read_record,
+    create_db::create_db, delete_db::delete_db, delete_record::delete_record,
+    delete_table::delete_table, insert_record::insert_record, insert_table::insert_table,
+    make_null::make_null, make_primary::make_primary, read_record::read_record,
+    select_by_val::select_by_val,
 };
 
 pub struct Executor {
     c_manager: CatalogManager,
     c_buffer: Arc<CatalogBuffer>,
     p_buffer: Arc<PageBuffer>,
+    i_buffer: Arc<IndexBuffer>,
 }
 
 impl Executor {
@@ -29,11 +33,13 @@ impl Executor {
         let c_manager = CatalogManager {
             catlog_buffer: c_buffer.clone(),
         };
+        let i_buffer = IndexBuffer::new();
         let p_buffer = PageBuffer::new();
         Arc::new(Self {
             c_manager,
             c_buffer,
             p_buffer,
+            i_buffer,
         })
     }
 
@@ -93,7 +99,14 @@ impl Executor {
                 db_name,
                 table,
                 column,
-            } => match make_primary(&db_name, &column, &table, &self.c_manager, &self.c_buffer) {
+            } => match make_primary(
+                &db_name,
+                &column,
+                &table,
+                &self.c_manager,
+                &self.c_buffer,
+                &self.i_buffer,
+            ) {
                 Ok(_) => {
                     return ResType::Success("Made primary successfully".to_string());
                 }
@@ -129,6 +142,46 @@ impl Executor {
             } => match read_record(&db_name, &table, &self.c_manager, &self.p_buffer) {
                 Ok(r) => {
                     return ResType::View(View::new(r.0, r.1));
+                }
+                Err(e) => {
+                    return ResType::Error(format!("{}", e));
+                }
+            },
+            SqlCommand::SelectByValue {
+                db_name,
+                col,
+                table,
+                value,
+            } => match select_by_val(
+                &db_name,
+                &table,
+                &col,
+                &value,
+                &self.c_manager,
+                &self.p_buffer,
+            ) {
+                Ok(r) => {
+                    return ResType::View(View::new(r.0, r.1));
+                }
+                Err(e) => {
+                    return ResType::Error(format!("{}", e));
+                }
+            },
+            SqlCommand::DeleteRecord {
+                db_name,
+                col,
+                table,
+                value,
+            } => match delete_record(
+                &db_name,
+                &table,
+                &col,
+                &value,
+                &self.c_manager,
+                &self.p_buffer,
+            ) {
+                Ok(r) => {
+                    return ResType::Success("Record deleted successfully!".to_string());
                 }
                 Err(e) => {
                     return ResType::Error(format!("{}", e));
