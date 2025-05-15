@@ -86,49 +86,112 @@ impl HashBucketManager {
     }
     /// Adds a `BucketValue` to the `HashBucket`, reusing a deleted slot if available or appending to the end.
 
-    pub fn add_value(bucket: &mut HashBucket, value: &BucketValue) {
-        let value = value.clone();
+    // pub fn dddadd_value(key:&str,db_name:&str,table_column:&str,is_overflow:u8,buffer: &IndexBuffer,bucket: &mut HashBucket, value: &BucketValue) -> Result<(), String>{
 
-        let mut current_bucket = bucket;
+        
+    //     let index = HashBucketManager::murmur_hash(key);
+    //     let page = buffer.get_page(db_name, table_column, is_overflow, index)?;
+    //     let mut bucket = page.write().map_err(|e| e.to_string())?;
 
-        while let Some(b) = Some(current_bucket) {
-            //first we try to place in deleted slot
-            for i in 0..b.value_count as usize {
-                if b.values[i].is_deleted != 0 {
-                    b.values[i] = value;
-                    b.is_dirty = 1;
-                    return;
-                }
-            }
+    //     let mut curren_bucket: Option<&mut HashBucket> = Some(&mut bucket); // Get By Buffer later
 
-            // second, we try to place at end
-            if b.value_count < MAX_BUCKET_VALUES {
-                if (b.value_count as usize) < b.values.len() {
-                    b.values[b.value_count as usize] = value;
-                } else {
-                    b.values.push(value);
-                }
-                b.value_count += 1;
-                b.is_dirty = 1;
-                return;
-            }
+    //     let value = value.clone();
 
-            // third, we go to next bucket if exists
-            if let Some(ref mut next) = b.next_bucket {
-                current_bucket = next.as_mut();
-            } else {
-                // fourth, wo next_bucket, create new
-                //LOGIC TO BE CHANGED
-                //IT IS ADD just as placeholder
-                let mut new_bucket = HashBucket::new(0); // change `0` to desired bucket_no
-                new_bucket.values.push(value);
-                new_bucket.value_count = 1;
-                new_bucket.is_dirty = 1;
-                b.next_bucket = Some(Box::new(new_bucket));
-                return;
+    //     let mut current_bucket = bucket;
+
+    //     while let Some(b) = Some(current_bucket) {
+    //         //first we try to place in deleted slot
+    //         for i in 0..b.value_count as usize {
+    //             if b.values[i].is_deleted != 0 {
+    //                 b.values[i] = value;
+    //                 b.is_dirty = 1;
+    //                 Ok(())
+    //             }
+    //         }
+
+    //         // second, we try to place at end
+    //         if b.value_count < MAX_BUCKET_VALUES {
+    //             if (b.value_count as usize) < b.values.len() {
+    //                 b.values[b.value_count as usize] = value;
+    //             } else {
+    //                 b.values.push(value);
+    //             }
+    //             b.value_count += 1;
+    //             b.is_dirty = 1;
+    //             Ok(())
+    //         }
+
+    //         // third, we go to next bucket if exists
+    //         if let Some(ref mut next) = b.next_bucket {
+    //             current_bucket = next.as_mut();
+    //         } else {
+    //             // fourth, wo next_bucket, create new
+    //             //LOGIC TO BE CHANGED
+    //             //IT IS ADD just as placeholder
+    //             let mut new_bucket = HashBucket::new(0); // change `0` to desired bucket_no
+    //             new_bucket.values.push(value);
+    //             new_bucket.value_count = 1;
+    //             new_bucket.is_dirty = 1;
+    //             b.next_bucket = Some(Box::new(new_bucket));
+    //             Ok(())
+    //         }
+
+    //     }
+    //     Ok(())
+    // }
+ pub fn add_value(
+    key: &str,
+    value: &BucketValue,
+    db_name: &str,
+    table_column: &str,
+    is_overflow: u8,
+    buffer: &IndexBuffer,
+) -> Result<(), String> {
+    let index = HashBucketManager::murmur_hash(key);
+    let page = buffer.get_page(db_name, table_column, is_overflow, index)?;
+    let mut guard = page.write().map_err(|e| e.to_string())?;
+    let mut current_bucket: &mut HashBucket = &mut *guard;
+
+    let value = value.clone();
+
+    loop {
+        // first we try to place in deleted slot
+        for i in 0..current_bucket.value_count as usize {
+            if current_bucket.values[i].is_deleted != 0 {
+                current_bucket.values[i] = value;
+                current_bucket.is_dirty = 1;
+                return Ok(());
             }
         }
+
+        // second, we try to place at end
+        if current_bucket.value_count < MAX_BUCKET_VALUES {
+            if (current_bucket.value_count as usize) < current_bucket.values.len() {
+                current_bucket.values[current_bucket.value_count as usize] = value;
+            } else {
+                current_bucket.values.push(value);
+            }
+            current_bucket.value_count += 1;
+            current_bucket.is_dirty = 1;
+            return Ok(());
+        }
+
+        // third, we go to next bucket if exists
+        if let Some(ref mut next) = current_bucket.next_bucket {
+            current_bucket = next.as_mut();
+        } else {
+            // fourth, wo next_bucket, create new
+            let mut new_bucket = HashBucket::new(0); // change `0` to desired bucket_no
+            new_bucket.values.push(value);
+            new_bucket.value_count = 1;
+            new_bucket.is_dirty = 1;
+            current_bucket.next_bucket = Some(Box::new(new_bucket));
+            return Ok(());
+        }
     }
+}
+
+
 
     // pub fn add_value_to_bucket(bucket: &mut HashBucket, value: &BucketValue) {
     //     // Assume BucketValue implements Clone for copying the value
@@ -182,7 +245,7 @@ impl HashBucketManager {
 
         // let mut bucket = HashBucket::new(0);
         // Get the page and mark it dirty
-        let page = buffer.get_page(db_name, table_column, is_overflow, index, false)?;
+        let page = buffer.get_page(db_name, table_column, is_overflow, index)?;
         let mut bucket = page.write().map_err(|e| e.to_string())?;
 
         let mut bucket_ref: Option<&mut HashBucket> = Some(&mut bucket); // Get By Buffer later
@@ -228,7 +291,7 @@ impl HashBucketManager {
 
         // Get the first page and lock it for write access
         let  page =
-            buffer.get_page(db_name, table_column, is_overflow, current_page_no, true)?;
+            buffer.get_page(db_name, table_column, is_overflow, current_page_no)?;
         let mut bucket = page.write().map_err(|e| e.to_string())?;
 
         let mut bucket_ref: Option<&mut HashBucket> = Some(&mut bucket); // Get the current bucket

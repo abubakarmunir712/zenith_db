@@ -22,8 +22,8 @@ impl IndexBuffer {
         &self,
         db_name: &str,
         table_column: &str,
-        start_page: u32,
         is_overflow: u8,
+        start_page: u32,
     ) -> Result<Arc<RwLock<HashBucket>>, String> {
         let mut current_page_no = start_page;
         let mut is_overflow = is_overflow;
